@@ -1,0 +1,1998 @@
+import time
+import subprocess
+from operator import itemgetter
+
+import wx
+import wx.html2
+import wx.grid
+from wx.lib.delayedresult import startWorker
+import wx.lib.inspection  # only used for inspecting wx widgets
+from wx.adv import Sound
+from wx.adv import AboutDialogInfo
+from wx.lib.dialogs import MultiMessageBox as MultiMessageBox
+
+from ObjectListView import ObjectListView, ColumnDefn, Filter
+
+from ac_constants import *
+import arsecandi
+import ac_utility
+import ac_ping
+
+"""  
+Naming Abreviations:
+
+btn:    Button
+rbtn:   RadioButton
+tbtn:   ToggleButton
+comb:   ComboBox (Choice)
+ckb:    CheckBox
+lab:    Label
+olv:    ObjectListView
+txt:    TextControl
+webv:   WebViewer
+
+_run - internal application
+_launch - external application
+"""
+
+prefs_dict = ac_utility.preferences(DATA_DIR)
+
+
+###########################################################################
+# Class VenuesPanel
+###########################################################################
+
+class VenuesPanel(wx.Panel):
+    pause_device_updating = False  # used to halt populating venue details while the cursor buttons are held down
+    venue_textsearch_filter = None
+    venue_ctf_filter = None
+    venue_ctrl_filter = None
+    venue_filter_args = []  # Holds the constructed arguments for applying filter/s to the venue_olv
+    device_show_flagged = prefs_dict["devicelist_show_flagged"]
+    autoping_active = prefs_dict["ping_on_select"]
+
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.Size(-1, -1),
+                          style=wx.TAB_TRAVERSAL, name="venues_panel_master")
+        self.SetForegroundColour(wx.Colour(COLOUR_BUTTON_TEXT_LIGHT))
+        self.SetBackgroundColour(wx.Colour(COLOUR_PANEL_BG))
+        self.SetMinSize(wx.Size(1412, 840))
+
+        fnt = self.GetFont()
+        # fnt.MakeLarger()
+        fnt.SetPointSize(APP_FS + 1)
+        self.SetFont(fnt)
+
+        self.timer = wx.Timer(self)
+
+        """
+        ### Initiate empty framework for GUI elements
+        """
+
+        panel_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        """ ### Venues Section """
+        venues_section_static_box = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Select a venue"), wx.VERTICAL)
+        vss_gsb = venues_section_static_box.GetStaticBox()  # A helper variable to use with StaticBoxSizer members
+        apply_text_template(vss_gsb)
+
+        venues_section_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        """ Venues Search TextBox """
+        self.venues_search_tb = wx.SearchCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size(-1, -1), 0)
+        self.venues_search_tb.ShowSearchButton(False)
+        self.venues_search_tb.ShowCancelButton(True)
+        self.venues_search_tb.SetForegroundColour(COLOUR_TEXT_LARGE)
+        self.venues_search_tb.SetFont(
+            wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, "Segoe UI Semibold"))
+        venues_section_sizer.Add(self.venues_search_tb, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 5)
+
+        """ Venues List Filter 'selections' """
+
+        venues_filter_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.ctf_filter_ckb = wx.CheckBox(self, wx.ID_ANY, " CTF Filter: Off ", wx.DefaultPosition, wx.Size(180, -1),
+                                          wx.CHK_3STATE | wx.CHK_ALLOW_3RD_STATE_FOR_USER)
+        self.ctf_filter_ckb.SetToolTip("Checked: CTF Only\nUnchecked: Non-CTF Only\nNeither: No Filtering")
+        self.ctf_filter_ckb.Set3StateValue(wx.CHK_UNDETERMINED)
+        self.ctf_filter_ckb.SetFont(
+            wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, "Segoe UI Semibold"))
+        venues_filter_sizer.Add(self.ctf_filter_ckb, 0, wx.ALL, 6)
+
+        self.controlled_filter_ckb = wx.CheckBox(self, wx.ID_ANY, " Controlled Filter: Off ", wx.DefaultPosition,
+                                                 wx.DefaultSize, wx.CHK_3STATE | wx.CHK_ALLOW_3RD_STATE_FOR_USER)
+        self.controlled_filter_ckb.SetToolTip(
+            "Checked: Controlled Only\nUnchecked: Non-controlled Only\nNeither: No Filtering")
+        self.controlled_filter_ckb.Set3StateValue(wx.CHK_UNDETERMINED)
+        self.controlled_filter_ckb.SetFont(
+            wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, "Segoe UI Semibold"))
+        venues_filter_sizer.Add(self.controlled_filter_ckb, 0, wx.ALL, 6)
+
+        venues_section_sizer.Add(venues_filter_sizer, 0, wx.EXPAND, 5)
+
+        """ Venues Object List View """
+        self.venue_olv = ObjectListView(self, wx.ID_ANY, wx.DefaultPosition, wx.Size(-1, -1),
+                                        style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.NO_BORDER)
+        self.venue_olv.SetColumns([
+            ColumnDefn("Venue", "left", 290, "name", minimumWidth=290),
+            ColumnDefn("AKA", "left", 0, "aka", maximumWidth=0),
+            ColumnDefn("Room", "left", 80, "code", minimumWidth=80),
+            ColumnDefn("Booking", "left", 0, "bookingid", maximumWidth=0),
+            ColumnDefn("Area", "left", 150, "group", minimumWidth=80, isSpaceFilling=True)])
+        #  BookingID and AKA fields hidden so that they can be included in the search lookup
+        self.venue_olv.SetMinSize(wx.Size(500, -1))
+        self.venue_olv.SetBackgroundColour(COLOUR_EVEN_LISTROW)
+        self.venue_olv.evenRowsBackColor = wx.Colour(COLOUR_EVEN_LISTROW)
+        self.venue_olv.oddRowsBackColor = wx.Colour(COLOUR_ODD_LISTROW)
+        self.venue_olv.SetEmptyListMsg("No matching venues")
+        self.venue_olv.SetEmptyListMsgColors(wx.WHITE, wx.Colour(COLOUR_EVEN_LISTROW))
+
+        # self.venue_olv.rowFormatter = self.rowFormatter
+        venues_section_sizer.Add(self.venue_olv, 1, wx.ALL | wx.EXPAND, 5)
+
+        """ Venues List Count Label """
+        self.venues_count_label = wx.StaticText(self, wx.ID_ANY, "", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_RIGHT)
+        self.venues_count_label.SetFont(
+            wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, "Segoe UI Semibold"))
+        self.venues_count_label.SetForegroundColour(COLOUR_BUTTON_TEXT_LIGHT)
+
+        venues_section_sizer.Add(self.venues_count_label, 0, wx.ALL | wx.EXPAND, 5)
+        venues_section_static_box.Add(venues_section_sizer, 1, wx.EXPAND, 5)
+        panel_sizer.Add(venues_section_static_box, 5, wx.ALL | wx.EXPAND, 10)
+
+        """ ### Venue Devices and Details Section """
+        venue_all_info_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        """ ### Venue Devices Section """
+        device_section_static_box = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Device controls"), wx.VERTICAL)
+        dvss_gsb = device_section_static_box.GetStaticBox()  # A helper variable to use with StaticBoxSizer members
+        apply_text_template(dvss_gsb)
+        device_section_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        """ Device Object List View """
+        device_box_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        device_list_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.device_olv = ObjectListView(self, wx.ID_ANY | wx.EXPAND, wx.DefaultPosition, wx.Size(-1, -1),
+                                         sortable=False, style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.NO_BORDER)
+        self.device_olv.SetColumns([
+            ColumnDefn("Address", "left", -1, 1, fixedWidth=105, isSearchable=False),
+            ColumnDefn("Device", "left", -1, 0, minimumWidth=140, isSpaceFilling=True, isSearchable=False),
+            ColumnDefn("Ping", "right", -1, "ping", fixedWidth=110, isSearchable=False),
+            ColumnDefn("_Ext_", "left", 0, 2, maximumWidth=0, isSearchable=False)])
+        # Ping is a generated result
+        self.device_olv.SetBackgroundColour(COLOUR_EVEN_LISTROW)
+        self.device_olv.evenRowsBackColor = wx.Colour(COLOUR_EVEN_LISTROW)
+        self.device_olv.oddRowsBackColor = wx.Colour(COLOUR_ODD_LISTROW)
+        self.device_olv.SetEmptyListMsg("No devices")
+        self.device_olv.SetEmptyListMsgColors(wx.WHITE, wx.Colour(COLOUR_EVEN_LISTROW))
+
+        # self.device_olv.rowFormatter(rowFormatter)  # TODO consider formatting cell dependant on ping result
+        self.device_olv.SetMinSize(wx.Size(352, 325))
+
+        device_list_sizer.Add(self.device_olv, 1, wx.ALL | wx.EXPAND, 0)
+
+        """ Device List Filtering """
+        devicelist_filter_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.flagged_ckb = wx.CheckBox(self, wx.ID_ANY, " Include Flagged", wx.DefaultPosition, wx.Size(100, -1), 0)
+        self.flagged_ckb.SetFont(
+            wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, "Segoe UI"))
+        self.flagged_ckb.SetToolTip(
+            "Include all of the ip addresses allocated to a venue\n* Indicates that the address is probably inactive")
+        self.flagged_ckb.SetForegroundColour(COLOUR_BUTTON_TEXT_LIGHT)
+        devicelist_filter_sizer.Add(self.flagged_ckb, 2, wx.ALL | wx.EXPAND, 5)
+
+        self.device_count_label = wx.StaticText(self, wx.ID_ANY, "Devices:", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.device_count_label.SetFont(
+            wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, "Segoe UI Semibold"))
+        self.device_count_label.SetForegroundColour(COLOUR_BUTTON_TEXT_LIGHT)
+        devicelist_filter_sizer.Add(self.device_count_label, 0, wx.ALL | wx.EXPAND, 5)
+
+        device_list_sizer.Add(devicelist_filter_sizer, 0, wx.EXPAND, 5)
+
+        device_box_sizer.Add(device_list_sizer, 2, wx.ALL | wx.EXPAND, 5)
+
+        self.device_button_line = wx.StaticLine(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_VERTICAL)
+        device_box_sizer.Add(self.device_button_line, 0, wx.BOTTOM | wx.TOP | wx.EXPAND, 5)
+
+        device_list_buttons_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.autoping_btn = wx.ToggleButton(self, wx.ID_ANY, "Auto-Ping", wx.DefaultPosition, wx.DefaultSize,
+                                            wx.NO_BORDER)
+        self.autoping_btn.SetToolTip("Automatically ping listed venue devices\n(* Will effect the speed of navigation)")
+        apply_button_template(self.autoping_btn, "active_toggle" if self.autoping_active else "default")
+
+        device_list_buttons_sizer.Add(self.autoping_btn, 0,
+                                      wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+
+        self.ping_btn = wx.Button(self, wx.ID_ANY, "Ping", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        # self.ping_btn.SetBitmap(wx.Bitmap(str(RESOURCE_DIR / "ping_icon.png")), wx.RIGHT)  # testing adding an image
+        # self.ping_btn.SetBitmapMargins((6, 6))
+        apply_button_template(self.ping_btn)
+        device_list_buttons_sizer.Add(self.ping_btn, 0,
+                                      wx.RIGHT | wx.BOTTOM | wx.TOP | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+
+        self.webcontrol_btn = wx.Button(self, wx.ID_ANY, "Web Control", wx.DefaultPosition, wx.DefaultSize,
+                                        wx.NO_BORDER)
+        self.webcontrol_btn.SetToolTip("Right click opens in alternative browser")
+
+        apply_button_template(self.webcontrol_btn)
+        device_list_buttons_sizer.Add(self.webcontrol_btn, 0,
+                                      wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+
+        self.shure_btn = wx.Button(self, wx.ID_ANY, "Shure Control", wx.DefaultPosition, wx.DefaultSize,
+                                   wx.NO_BORDER)
+        apply_button_template(self.shure_btn)
+        device_list_buttons_sizer.Add(self.shure_btn, 0,
+                                      wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+
+        self.vnc_btn = wx.Button(self, wx.ID_ANY, "VNC", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        apply_button_template(self.vnc_btn)
+        self.vnc_btn.Enable(False)
+        device_list_buttons_sizer.Add(self.vnc_btn, 0,
+                                      wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+
+        self.telnet_btn = wx.Button(self, wx.ID_ANY, "Telnet", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        apply_button_template(self.telnet_btn)
+        self.telnet_btn.Enable(False)
+        device_list_buttons_sizer.Add(self.telnet_btn, 0,
+                                      wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+
+        self.reboot_btn = wx.Button(self, wx.ID_ANY, "Reboot", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        apply_button_template(self.reboot_btn)
+        device_list_buttons_sizer.Add(self.reboot_btn, 0,
+                                      wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+
+        self.touchpanel_btn = wx.Button(self, wx.ID_ANY, "Touch Panel", wx.DefaultPosition, wx.DefaultSize,
+                                        wx.NO_BORDER)
+        self.touchpanel_btn.SetToolTip("Opens first touch panel in device list")
+        apply_button_template(self.touchpanel_btn)
+        device_list_buttons_sizer.Add(self.touchpanel_btn, 0,
+                                      wx.RIGHT | wx.BOTTOM | wx.TOP | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+
+        self.pc_btn = wx.Button(self, wx.ID_ANY, "DameWare", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        self.pc_btn.SetToolTip("Opens first PC in device list")
+        apply_button_template(self.pc_btn)
+        device_list_buttons_sizer.Add(self.pc_btn, 0,
+                                      wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+
+        self.echo_btn = wx.Button(self, wx.ID_ANY, "Echo 360", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        apply_button_template(self.echo_btn)
+        device_list_buttons_sizer.Add(self.echo_btn, 0,
+                                      wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+
+        device_box_sizer.Add(device_list_buttons_sizer, 0, wx.ALL | wx.EXPAND, 5)
+        device_section_sizer.Add(device_box_sizer, 5, wx.ALL | wx.EXPAND, 5)
+
+        """ Device List spacer """
+        device_section_sizer.Add(wx.Size(500, 0))
+
+        """ WebCam Viewer """
+        webcam_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        """ Cam viewer window spacer left """
+        webcam_sizer.Add((0, 0), 1, wx.EXPAND)  # For horizontally aligning webcam viewer within webcam_sizer
+
+        self.cam_viewer = wx.html2.WebView.New(self, wx.ID_ANY, size=wx.Size(352, 230))
+        self.cam_viewer.SetMinSize((352, 230))
+        self.cam_viewer.SetMaxSize((352, 230))
+        self.cam_viewer.EnableHistory(False)
+        self.cam_viewer.Enable(False)
+        webcam_sizer.Add(self.cam_viewer, 0, wx.ALL | wx.CENTER, 5)
+
+        """ Cam viewer window spacer right """
+        webcam_sizer.Add((0, 0), 1, wx.EXPAND)  # For horizontally aligning webcam viewer within webcam_sizer
+
+        """ WebCam buttons """
+        self.webcam_button_line = wx.StaticLine(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_VERTICAL)
+        webcam_sizer.Add(self.webcam_button_line, 0, wx.BOTTOM | wx.TOP | wx.EXPAND, 5)
+
+        webcam_buttons_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.webcam_refresh_btn = wx.ToggleButton(self, wx.ID_ANY, "Monitor", wx.DefaultPosition, wx.Size(112, -1),
+                                                  wx.NO_BORDER)
+        apply_button_template(self.webcam_refresh_btn)
+        webcam_buttons_sizer.Add(self.webcam_refresh_btn, 0, wx.ALL | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+
+        self.webcam_open_btn = wx.Button(self, wx.ID_ANY, "Camera Type", wx.DefaultPosition, wx.DefaultSize,
+                                         wx.NO_BORDER)
+        self.webcam_open_btn.SetToolTip("Open camera with viewer\n(Right click opens in browser)")
+        apply_button_template(self.webcam_open_btn)
+        self.webcam_open_btn.SetMinSize(wx.Size(112, -1))
+        webcam_buttons_sizer.Add(self.webcam_open_btn, 0, wx.ALL | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+
+        webcam_sizer.Add(webcam_buttons_sizer, 1, wx.ALIGN_RIGHT, 5)
+
+        """ Cam viewer section spacer """
+        webcam_sizer.Add((5, 0), 0, wx.EXPAND, 5)  # For horizontally aligning webcam sizer with devicebox sizer
+        device_section_sizer.Add(webcam_sizer, 1, wx.ALIGN_RIGHT | wx.ALL, 5)
+
+        device_section_static_box.Add(device_section_sizer, 1, wx.EXPAND, 5)
+        venue_all_info_sizer.Add(device_section_static_box, 1, wx.ALL | wx.EXPAND, 10)
+
+        """ ### Venue Details Section """
+        details_section_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Details"), wx.VERTICAL)
+        dss_gsb = details_section_sizer.GetStaticBox()  # A helper to use as parent with StaticBoxSizer members
+        apply_text_template(dss_gsb)
+
+        """ Venue Details Buttons """
+        details_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.airtable_btn = wx.Button(dss_gsb, wx.ID_ANY, "AirTable", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        self.airtable_btn.SetToolTip("Right click to open in new window")
+        apply_button_template(self.airtable_btn)
+
+        self.asana_btn = wx.Button(dss_gsb, wx.ID_ANY, "Asana", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        self.asana_btn.SetToolTip("Right click to open in new window")
+        apply_button_template(self.asana_btn)
+
+        self.websis_btn = wx.Button(dss_gsb, wx.ID_ANY, "WebSiS", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        self.websis_btn.SetToolTip("Right click to open in new window")
+        apply_button_template(self.websis_btn)
+
+        ds_button_params = 0, wx.ALL | wx.EXPAND, 5
+        details_button_sizer.AddMany([(self.airtable_btn, *ds_button_params), (self.asana_btn, *ds_button_params),
+                                      (self.websis_btn, *ds_button_params)])
+
+        details_section_sizer.Add(details_button_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP | wx.EXPAND, 5)
+
+        """ Venue Name """
+        self.venue_name_text = wx.TextCtrl(dss_gsb, wx.ID_ANY, "Venue Name?", wx.DefaultPosition, wx.Size(240, 50),
+                                           wx.TE_READONLY | wx.NO_BORDER | wx.TE_MULTILINE | wx.TE_NO_VSCROLL)
+        apply_text_template(self.venue_name_text, "details_venue_name")
+        details_section_sizer.Add(self.venue_name_text, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL | wx.EXPAND, 5)
+
+        """ Venue Other Details """
+        details_fields_sizer = wx.FlexGridSizer(6, 2, 0, 0)
+
+        self.building_name_label = wx.StaticText(dss_gsb, wx.ID_ANY, "Building", wx.DefaultPosition, wx.Size(-1, 42),
+                                                 wx.TE_RIGHT | wx.NO_BORDER)
+        self.building_name_text = wx.TextCtrl(dss_gsb, wx.ID_ANY, "?", wx.DefaultPosition, wx.Size(-1, -1),
+                                              wx.TE_READONLY | wx.NO_BORDER | wx.TE_MULTILINE | wx.TE_NO_VSCROLL)
+
+        self.room_number_label = wx.StaticText(dss_gsb, wx.ID_ANY, "Room No.", wx.DefaultPosition, wx.Size(-1, -1),
+                                               wx.TE_RIGHT | wx.NO_BORDER)
+        self.room_number_text = wx.TextCtrl(dss_gsb, wx.ID_ANY, "?", wx.DefaultPosition, wx.DefaultSize,
+                                            wx.TE_READONLY | wx.NO_BORDER)
+
+        self.capacity_label = wx.StaticText(dss_gsb, wx.ID_ANY, "Capacity", wx.DefaultPosition, wx.Size(-1, -1),
+                                            wx.TE_RIGHT | wx.NO_BORDER)
+        self.capacity_text = wx.TextCtrl(dss_gsb, wx.ID_ANY, "?", wx.DefaultPosition, wx.DefaultSize,
+                                         wx.TE_READONLY | wx.NO_BORDER)
+
+        self.ctf_label = wx.StaticText(dss_gsb, wx.ID_ANY, "CTF", wx.DefaultPosition, wx.Size(-1, -1),
+                                       wx.TE_RIGHT | wx.NO_BORDER)
+        self.ctf_text = wx.TextCtrl(dss_gsb, wx.ID_ANY, "?", wx.DefaultPosition, wx.DefaultSize,
+                                    wx.TE_READONLY | wx.NO_BORDER)
+
+        self.phone_label = wx.StaticText(dss_gsb, wx.ID_ANY, "Phone", wx.DefaultPosition, wx.Size(-1, -1),
+                                         wx.TE_RIGHT | wx.NO_BORDER)
+        self.phone_text = wx.TextCtrl(dss_gsb, wx.ID_ANY, "?", wx.DefaultPosition, wx.DefaultSize,
+                                      wx.TE_READONLY | wx.NO_BORDER)
+
+        self.radio_mic_label = wx.StaticText(dss_gsb, wx.ID_ANY, "Radio Mic", wx.DefaultPosition, wx.Size(-1, 42),
+                                             wx.TE_RIGHT | wx.NO_BORDER)
+        self.radio_mic_text = wx.TextCtrl(dss_gsb, wx.ID_ANY, "?", wx.DefaultPosition, wx.Size(-1, -1),
+                                          wx.TE_READONLY | wx.NO_BORDER | wx.TE_MULTILINE)
+
+        details_text_list = [self.building_name_text,
+                             self.room_number_text,
+                             self.capacity_text,
+                             self.ctf_text,
+                             self.phone_text,
+                             self.radio_mic_text]
+
+        details_labels_list = [self.building_name_label,
+                               self.room_number_label,
+                               self.capacity_label,
+                               self.ctf_label,
+                               self.phone_label,
+                               self.radio_mic_label]
+
+        for label in details_labels_list:
+            apply_text_template(label, "details_label")
+
+        for text in details_text_list:
+            apply_text_template(text, "details_text")
+
+        ds_label_params = 0, wx.ALIGN_RIGHT | wx.ALL, 5
+        ds_text_params = 1, wx.ALIGN_LEFT | wx.ALL | wx.EXPAND, 6
+
+        details_fields_sizer.AddMany([
+            (self.building_name_label, *ds_label_params), (self.building_name_text, *ds_text_params),
+            (self.room_number_label, *ds_label_params), (self.room_number_text, *ds_text_params),
+            (self.capacity_label, *ds_label_params), (self.capacity_text, *ds_text_params),
+            (self.ctf_label, *ds_label_params), (self.ctf_text, *ds_text_params),
+            (self.phone_label, *ds_label_params), (self.phone_text, *ds_text_params),
+            (self.radio_mic_label, *ds_label_params), (self.radio_mic_text, *ds_text_params)])
+
+        details_fields_sizer.AddGrowableCol(1, 1)  # Allows text controls column to expand (horizontally)
+
+        details_section_sizer.Add(details_fields_sizer, 0, wx.EXPAND, 5)
+
+        """ Venue Notes """
+        self.notes_text = wx.TextCtrl(dss_gsb, wx.ID_ANY, "Notes", wx.Point(-1, -1), wx.Size(236, -1), wx.TE_MULTILINE)
+        details_section_sizer.Add(self.notes_text, 1, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL | wx.EXPAND, 5)
+
+        """ Details section spacer """
+        details_section_sizer.Add((-1, 10), 0, wx.EXPAND, 5)
+
+        """ Image Viewer (buildings) """
+        image_viewer_default = \
+            "https://static.weboffice.uwa.edu.au/visualid/core-rebrand/img/uwacrest/uwacrest-white.png"
+        self.image_viewer = wx.html2.WebView.New(dss_gsb, wx.ID_ANY, image_viewer_default, wx.DefaultPosition,
+                                                 wx.Size(286, 187))
+        self.image_viewer.SetMinSize((286, 187))
+        self.image_viewer.SetMaxSize((286, 187))
+        self.image_viewer.Enable(False)
+
+        details_section_sizer.Add(self.image_viewer, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+
+        venue_all_info_sizer.Add(details_section_sizer, 0, wx.ALL | wx.EXPAND, 10)
+        panel_sizer.Add(venue_all_info_sizer, 1, wx.ALL | wx.EXPAND, 0)
+
+        self.SetSizer(panel_sizer)
+        self.Layout()
+
+        """
+        ### Generate and fill content for GUI elements
+        """
+
+        """ Venues List Control - content """
+        self.populate_venues_olv()
+        self.venue_olv.Focus(0)
+        self.olv_venue_selected_evt(-1)  # returns first column's value (record ID)
+        # self.olv_venue_selected_evt(self.venue_olv.GetItemText(0))  # returns first column's value (record ID)
+
+        """ Device List Control """
+        self.flagged_ckb.SetValue(prefs_dict["devicelist_show_flagged"])
+
+        """
+        ### Setup event binding connections
+        """
+        self.venues_search_tb.Bind(wx.EVT_TEXT, self.txt_venues_filter_by_search_evt)
+        self.venue_olv.Bind(wx.EVT_LIST_ITEM_SELECTED, self.olv_venue_selected_evt)
+        self.venue_olv.Bind(wx.EVT_KEY_DOWN, self.olv_venue_keydown_evt)
+        self.venue_olv.Bind(wx.EVT_KEY_UP, self.olv_venue_keyup_evt)
+        self.venue_olv.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.olv_venue_select_none_evt)
+        self.ctf_filter_ckb.Bind(wx.EVT_CHECKBOX, self.ckb_venues_filter_by_ctf_evt)
+        self.controlled_filter_ckb.Bind(wx.EVT_CHECKBOX, self.ckb_venues_filter_by_control_evt)
+        self.device_olv.Bind(wx.EVT_LIST_ITEM_SELECTED, self.olv_device_selected_evt)
+        self.flagged_ckb.Bind(wx.EVT_CHECKBOX, self.ckb_device_filter_toggle_evt)
+        self.autoping_btn.Bind(wx.EVT_TOGGLEBUTTON, self.btn_autoping_toggle_evt)
+        self.ping_btn.Bind(wx.EVT_BUTTON, self.btn_ping_evt)
+        self.webcontrol_btn.Bind(wx.EVT_BUTTON, self.btn_webcontrol_evt)
+        self.webcontrol_btn.Bind(wx.EVT_RIGHT_UP, self.btn_webcontrol_evt)
+        self.shure_btn.Bind(wx.EVT_BUTTON, self.btn_shure_wwb_evt)
+        self.vnc_btn.Bind(wx.EVT_BUTTON, self.btn_vnc_evt)
+        self.telnet_btn.Bind(wx.EVT_BUTTON, self.btn_telnet_evt)
+        self.reboot_btn.Bind(wx.EVT_BUTTON, self.btn_reboot_evt)
+        self.touchpanel_btn.Bind(wx.EVT_BUTTON, self.btn_touchpanel_evt)
+        self.pc_btn.Bind(wx.EVT_BUTTON, self.btn_dameware_evt)
+        self.echo_btn.Bind(wx.EVT_BUTTON, self.btn_echo_evt)
+        self.cam_viewer.Bind(wx.html2.EVT_WEBVIEW_ERROR, self.webv_webcam_err_evt)
+        self.webcam_refresh_btn.Bind(wx.EVT_TOGGLEBUTTON, self.btn_webcam_refresh_evt)
+        self.webcam_open_btn.Bind(wx.EVT_BUTTON, self.btn_webcam_open_evt)
+        self.webcam_open_btn.Bind(wx.EVT_RIGHT_UP, self.btn_webcam_open_evt)
+        self.airtable_btn.Bind(wx.EVT_BUTTON, self.btn_airtable_evt)
+        self.airtable_btn.Bind(wx.EVT_RIGHT_UP, self.btn_airtable_evt)
+        self.asana_btn.Bind(wx.EVT_BUTTON, self.btn_asana_evt)
+        self.asana_btn.Bind(wx.EVT_RIGHT_UP, self.btn_asana_evt)
+        self.websis_btn.Bind(wx.EVT_BUTTON, self.btn_websis_evt)
+        self.websis_btn.Bind(wx.EVT_RIGHT_UP, self.btn_websis_evt)
+        self.Bind(wx.EVT_TIMER, self.tmr_webcam_update, self.timer)
+
+        self.device_olv.Select(0)  # only needed to trigger device button formatting when app first started
+
+    # TODO remove - just a sample of row formatting
+    # def rowFormatter(self, list_row, olv):
+    #     if olv["aka"] == "ALR4":
+    #         list_row.SetTextColour(wx.RED)
+    #         list_row.SetBackgroundColour(wx.LIGHT_GREY)
+    #         list_row.SetFont(wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False,
+    #                                  "Segoe UI Semibold"))
+
+    """
+    ### Venues Panel Class -  event handlers 
+    """
+
+    def btn_webcontrol_evt(self, event):
+        # opens a web browser to the control page, for laser projectors, Extron controls, etc
+        right_click = event.GetEventType() == 10035  # determine if the event type code is wx.EVT_RIGHT_UP
+        ipstring = self.device_olv.GetSelectedObject()[1]
+
+        if "Extron Touch Panel" in (self.device_olv.GetSelectedObject()[0]):
+            extension = self.device_olv.GetSelectedObject()[2]
+            ipstring = f'https://{ipstring}/web/vtlp/{extension}/vtlp.html'
+
+        if not right_click:
+            progstring = prefs_dict["main_browser"]
+            self._launch_main_browser(progstring, ipstring)
+        else:
+            progstring = prefs_dict["alt_browser"]
+            self._launch_alt_browser(progstring, ipstring)
+
+    def _launch_main_browser(self, progstring, ipstring, new_window=False):
+        try:
+            if new_window:
+                subprocess.Popen([progstring, "--window-size=1024,768", "--new-window", ipstring])
+                # opens chrome with new window at address passed, if Chrome is already open it ignores sizing flags :(
+            else:
+                subprocess.Popen([progstring, "--window-size=1024,768", ipstring])  # new tab
+        except OSError as e:
+            print("Browser failed to run:", e)
+            msg_warn(self, f"Browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
+
+    def _launch_alt_browser(self, progstring, ipstring):
+        try:
+            subprocess.Popen([progstring, ipstring])
+            # opens ie with new window at address passed
+        except OSError as e:
+            print("Alternative browser failed to run:", e)
+            msg_warn(self, f"Alternative browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
+
+    """ chrome switches: https://www.ghacks.net/2013/10/06/list-useful-google-chrome-command-line-switches/"""
+
+    def btn_shure_wwb_evt(self, _):
+        # Temporary code for Shure radio mic interface - yet to be determined
+        # probably should look at how Dameware is opened and use similar coding
+        progstring = prefs_dict["shure"]
+        ipstring = self.device_olv.GetSelectedObject()[1]
+        try:
+            subprocess.Popen([progstring, "--window-size=1024,768", "--new-window", ipstring])
+            # opens chrome with new window at address passed, if Chrome is already open it ignores sizing flags :(
+        except OSError as e:
+            print("Shure interface failed to run:", e)
+            msg_warn(self, f"Shure interface failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
+
+    def btn_vnc_evt(self, _):
+        # opens a VNC session for AMX touchpanels
+        progstring = prefs_dict["vnc"]
+        ipstring = self.device_olv.GetSelectedObject()[1]
+        self._launch_vnc(progstring, ipstring)
+
+    def _launch_vnc(self, progstring, ipstring):
+        try:
+            subprocess.Popen([progstring, "-connect host", ipstring])
+            # opens vnc with new window at address passed
+        except OSError as e:
+            print("VNC failed to run:", e)
+            msg_warn(self, f"VNC failed to run:\n{progstring}\n{ipstring}\n\nCheck: View -> Settings\n\n{e}")
+
+    def btn_telnet_evt(self, _):
+        # opens a telnet shell session
+        progstring = prefs_dict["telnet"]
+        # TODO reinstate below for uwa use
+        ipstring = self.device_olv.GetSelectedObject()[1]
+        ipstring = "35.160.169.47"  # Testing only
+        try:
+            # subprocess.Popen(["start", "cmd.exe /k", "ping.exe", "www.google.com"], shell=True)
+            # For Telnet use Popen with argument shell=True
+            subprocess.Popen(["start", "cmd.exe ", progstring, ipstring], shell=True)
+            # opens telnet with new window at address passed
+        except OSError as e:
+            print("Telnet failed to run:", e)
+            msg_warn(self, f"Telnet failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
+
+    def btn_reboot_evt(self, _):
+        # uses the telnet library in ac_utility.py, rather than the old vbs script
+        device_type = self.device_olv.GetSelectedObject()[0]
+        venue_name = self.venue_olv.GetSelectedObject()['name']
+        message = f"You are about to reboot the {device_type} \nin {venue_name}" \
+            f"\n\nAre you sure that you want to continue?\n\n"
+        # MessageBox and MultiMessageBox - automatically call .ShowModal() when instantiated and .Destroy() when closed
+        dlg = wx.MessageBox(message, "Rebooting - is it a good idea?", wx.YES_NO | wx.ICON_WARNING)
+        user = None
+        pwd = None
+        if device_type == "DGX":
+            user = "administrator"
+            pwd = "password"
+        if dlg == wx.YES:
+            # TODO reinstate below for uwa use
+            # ipstring = self.device_olv.GetSelectedObject()[1]
+            ipstring = "rainmaker.wunderground.com"  # Placeholder
+            response = ac_utility.reboot_via_telnet(ipstring, user, pwd)
+
+            MultiMessageBox(f'{venue_name} : {device_type}', "Telnet Session Details...", response)
+
+        pass
+
+    def btn_touchpanel_evt(self, _):
+        # opens a vnc or web session for the first listed venue touch-panel (depending on AMX or Extron type)
+
+        for row in range(self.device_olv.GetItemCount()):
+            if "Extron Touch Panel" in (self.device_olv.GetItemText(row, 1)):
+                progstring = prefs_dict["main_browser"]
+                ipstring = self.device_olv.GetItemText(row, 0)
+                extension = self.device_olv.GetItemText(row, 3)  # The extension column is not visually present in olv
+                full_ipstring = f'https://{ipstring}/web/vtlp/{extension}/vtlp.html'
+                self._launch_main_browser(progstring, full_ipstring)
+                break
+            elif "Touch Panel" in (self.device_olv.GetItemText(row, 1)):
+                progstring = prefs_dict["vnc"]
+                ipstring = self.device_olv.GetItemText(row, 0)
+                self._launch_vnc(progstring, ipstring)
+                break
+
+    def btn_dameware_evt(self, _):
+        # opens a DameWare session for first listed Lectern PC
+        # TODO change code or AirTable to handle multiple pc's in venue
+        computer_name_string = None
+        for row in range(self.device_olv.GetItemCount()):
+            if "[Lectern PC]" in (self.device_olv.GetItemText(row, 1)):
+                computer_name_string = self.device_olv.GetItemText(row, 0)
+                break
+
+        progstring = prefs_dict["dameware"]
+        shellstring = "runas.exe /savecred /user:uniwa\\" + prefs_dict["staff_id"]
+        try:
+            # "runas.exe /savecred /user:uniwa\" + Preferences.UserAccountID + " """ + progstring + " -c: -m:" + ipstring + """"
+            subprocess.Popen([shellstring, progstring, " -c: -m:", computer_name_string])
+            # opens and logs into Dameware with new window with computerID passed - should ask for password only once
+        except OSError as e:
+            print("Dameware failed to run:", e)
+            msg_warn(self, f"Dameware failed to run:\n{progstring}\n{computer_name_string}\n"
+            f"Check: View -> Settings\n\n{e}")
+
+    def btn_echo_evt(self, _):
+        # opens a web? session for the first listed venue Echo 360 device
+        progstring = prefs_dict["main_browser"]
+        for row in range(self.device_olv.GetItemCount()):
+            if "[Echo 360]" in (self.device_olv.GetItemText(row, 1)):
+                ipstring = self.device_olv.GetItemText(row, 0)
+                full_ipstring = f'https://admin:password@{ipstring}:8443/advanced'
+                self._launch_main_browser(progstring, full_ipstring)
+                break
+        # TODO - find echo http string to run, maybe?
+
+    def webv_webcam_err_evt(self, event):
+        print("Gagged: " + event.GetURL())
+        current_venue = self.venue_olv.GetSelectedObject()
+        wx.CallAfter(self.populate_camview, current_venue, failed=True)  # Note the format of function name + arguments
+        #  waiting until this event finishes before sending request to update page - it's a timing thing
+
+    def btn_webcam_refresh_evt(self, _):
+        # wx.CallLater(1000, self.cam_viewer.Reload, flags=1)  # One shot refresh after 1 second
+        frequency = prefs_dict["camera_refresh"]  # 1000 = One second refresh rate
+        if self.timer.IsRunning():
+            self.timer.Stop()
+            self.webcam_refresh_btn.SetLabel("Monitor")
+            apply_button_template(self.webcam_refresh_btn)
+            # self.timer.Destroy() # use on closing
+        else:
+            self.timer.Start(frequency)
+            self.webcam_refresh_btn.SetLabel("Monitoring")
+            apply_button_template(self.webcam_refresh_btn, "active_toggle")
+
+    def tmr_webcam_update(self, _):
+        self.cam_viewer.Reload(flags=1)  # Supposedly reloads without cache, seems to work!
+
+    def btn_webcam_open_evt(self, event):
+        right_click = event.GetEventType() == 10035  # determine if the event type code is wx.EVT_RIGHT_UP
+        venue = (self.venue_olv.GetSelectedObject())
+        camera_type = venue["webcamtype"]
+        camera_ip = venue["webcam"]
+        win_size = (640, 480)
+        """
+        Camera controls
+        VB10: Firefox; Suffix=/sample/LvAppl/lvappl.htm; Size=475x415
+        VB41: Chrome; Suffix=/viewer/live/en/live.html Size=1100x743
+        VB50: Firefox; Suffix=/sample/lvahuge.html; Size=833x780
+        VB60: Chrome; Suffix=/viewer/live/en/live.html; Size=810x745
+        SonyCam: Firefox; Suffix=/en/JViewer.html; Size=860x590
+        """
+        # TODO Placeholders until live
+        camera_type = "VB60"
+        camera_ip = "136.142.166.244"
+
+        if camera_type == "SonyCam":
+            viewer_url = f"http://{camera_ip}/en/JViewer.html"
+            win_size = (860, 590)
+            ext_browser = "Firefox"
+        elif camera_type == "VB41":
+            viewer_url = f"http://{camera_ip}/viewer/live/en/live.html"
+            win_size = (1100, 743)
+            ext_browser = "Chrome"
+        elif camera_type == "VB60":
+            viewer_url = f"http://{camera_ip}/viewer/live/en/live.html"
+            win_size = (810, 745)
+            ext_browser = "Chrome"
+        elif camera_type == "VB10":
+            viewer_url = f"http://{camera_ip}/sample/LvAppl/lvappl.htm"
+            win_size = (475, 415)
+            ext_browser = "Firefox"
+        elif camera_type == "VB50":
+            viewer_url = f"http://{camera_ip}/sample/lvahuge.html"
+            win_size = (833, 780)
+            ext_browser = "Firefox"
+        else:
+            viewer_url = f"http://{camera_ip}"
+            win_size = (1024, 768)
+            ext_browser = "Chrome"
+
+        if not right_click:
+            webcam_window = WebCamFrame(title=f"{camera_type} - {camera_ip}", size=win_size, address=viewer_url)
+            webcam_window.Show()
+        else:
+            if ext_browser == "Chrome":
+                progstring = prefs_dict["main_browser"]
+                browser_switch = "--new-window"
+            else:
+                progstring = prefs_dict["alt_browser"]
+                browser_switch = "-new-window"
+            try:
+                subprocess.Popen(
+                    [progstring, browser_switch, viewer_url])  # opens browser with new window at address passed
+            except OSError as e:
+                print("Browser failed to run:", e)
+                msg_warn(self, f"Browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
+        event.Skip()
+
+    def btn_airtable_evt(self, event):
+        # opens a web browser to the venue's AirTable page
+        right_click = event.GetEventType() == 10035  # determine if the event type code is wx.EVT_RIGHT_UP
+        venue_record = self.venue_olv.GetSelectedObject()["id"]
+
+        progstring = prefs_dict["main_browser"]
+        airtable_prefix_string = prefs_dict["airtable_web"]
+        ipstring = f'{airtable_prefix_string}/{venue_record}'
+        self._launch_main_browser(progstring, ipstring, right_click)
+
+    def btn_asana_evt(self, event):
+        # opens a web browser to the venue's Asana tasks
+        right_click = event.GetEventType() == 10035
+        venue_record = self.venue_olv.GetSelectedObject()["asana"]
+
+        if venue_record == "":
+            msg_warn(self, "Venue has no associated Asana tag", self.venue_olv.GetSelectedObject()["name"])
+            return
+
+        progstring = prefs_dict["main_browser"]
+        asana_prefix_string = "https://app.asana.com/0/"
+        ipstring = f'{asana_prefix_string}{venue_record}'
+        self._launch_main_browser(progstring, ipstring, right_click)
+
+    def btn_websis_evt(self, event):
+        # opens a web browser to venue's websis page
+        right_click = event.GetEventType() == 10035
+        venue_record = self.venue_olv.GetSelectedObject()["websis"]
+
+        if venue_record == "":
+            msg_warn(self, "Venue has no websis link", self.venue_olv.GetSelectedObject()["name"])
+            return
+
+        progstring = prefs_dict["main_browser"]
+        websis_prefix_string = "http://sisfm-enquiry.fm.uwa.edu.au/sisfm-enquiry/mapEnquiry/default.aspx?loc_code="
+        ipstring = f'{websis_prefix_string}{venue_record}'
+        self._launch_main_browser(progstring, ipstring, right_click)
+
+    def olv_venue_keydown_evt(self, event):  # TODO rename method, split up if it makes sense
+        keycode = event.GetKeyCode()
+        if keycode in range(315, 318, 2):  # Checking for up & down cursor keys (315 & 317)
+            self.pause_device_updating = True  # Prevents venue devices and details updating until cursor key is released
+
+        if 91 > keycode > 47:  # this works for keys 0-9 and a-z plus a couple of others
+            self.venues_search_tb.SetValue(chr(keycode).upper())
+            self.venues_search_tb.SetFocus()
+            self.venues_search_tb.SetInsertionPointEnd()
+        event.Skip()
+
+    def olv_venue_keyup_evt(self, event):
+        keycode = event.GetKeyCode()
+        if keycode in range(315, 318, 2):
+            self.pause_device_updating = False
+            self.olv_venue_selected_evt(self)
+        elif keycode == wx.WXK_TAB:
+            if not self.venue_olv.GetSelectedObject():
+                # when tabbing through controls, if there is no venue selected, select/highlight the first venue
+                self.olv_venue_focusselect(0)
+
+    def olv_venue_select_none_evt(self, event):
+        # doing this to clear device list if no venue is selected (eg when clicking in blank area in olv)
+        self.device_olv.SetObjects([])
+        self.button_group_visibility(False)
+        self.update_device_count()
+        # event.Skip()
+
+    def olv_venue_selected_evt(self, _):
+        if not self.pause_device_updating:
+            current_venue = self.venue_olv.GetSelectedObject()
+            wx.GetTopLevelParent(self).SetTitle(
+                APP_NAME + "  >>  " + current_venue["name"])  # Add venue name to window title
+            self.populate_device_olv(current_venue)
+            self.populate_details_section(current_venue)
+            self.populate_camview(current_venue)
+
+        # event.Skip()  # Contrary to the name, event.Skip() ensures other event calls ARE executed if needed
+
+    def olv_device_selected_evt(self, _):
+        """ This method just enables buttons dependant on the selected device """
+        current_device = self.device_olv.GetSelectedObject()[0]
+
+        if current_device.startswith(("Net", "DGX", "DVX", "DX ", "Tou")):
+            apply_button_template(self.reboot_btn)
+        else:
+            apply_button_template(self.reboot_btn, "disabled")
+        if current_device.startswith(("Net", "DGX", "DVX", "DX ", "DSP", "Key", "Vid", "Tou")):
+            apply_button_template(self.telnet_btn)
+        else:
+            apply_button_template(self.telnet_btn, "disabled")
+        if current_device.startswith(("iBoo", "LCD", "Cam", "Data", "Dis", "Pro", "WeP", "Extr")):
+            apply_button_template(self.webcontrol_btn)
+        else:
+            apply_button_template(self.webcontrol_btn, "disabled")
+        if current_device.startswith("Tou"):
+            apply_button_template(self.vnc_btn)
+        else:
+            apply_button_template(self.vnc_btn, "disabled")
+        if current_device.startswith("Rad"):
+            apply_button_template(self.shure_btn)
+        else:
+            apply_button_template(self.shure_btn, "disabled")
+
+        self.enable_group_buttons()
+
+    """
+    ### Filtering - Venues List 
+    """
+
+    def txt_venues_filter_by_search_evt(self, _):
+        if self.venues_search_tb.IsEmpty():
+            self.venue_textsearch_filter = None
+        else:
+            self.venue_textsearch_filter = Filter.TextSearch(self.venue_olv, text=self.venues_search_tb.GetValue())
+            # ^ Searches for matching text in venue_olv columns
+
+        self.filter_venues_olv()
+
+    def ckb_venues_filter_by_ctf_evt(self, event):
+        choice = event.GetSelection()
+        # 0 = No; 1 = Yes; 2 = Undetermined
+        self.venue_olv.SortBy(1)  # Had to sort by a hidden column to remove sort icon from view, before default sort
+        self.venue_olv.SetSortColumn(None)  # Setting sort column to None restores default sort order
+
+        if choice == 1:
+            self.venue_ctf_filter = Filter.Predicate(lambda x: ("Yes" in x["ctf"]))
+            self.ctf_filter_ckb.SetLabelText(' CTF Venues ')
+        elif choice == 0:
+            self.venue_ctf_filter = Filter.Predicate(lambda x: ("Yes" not in x["ctf"]))
+            self.ctf_filter_ckb.SetLabelText(' Non-CTF Venues ')
+        else:
+            self.venue_ctf_filter = None
+            self.ctf_filter_ckb.SetLabelText(' CTF Filter: Off ')
+
+        self.ctf_filter_ckb.Refresh()  # this method pair prevents text overlaying when it changes on layout()
+        self.ctf_filter_ckb.Update()
+        self.venue_olv.SetFocus()
+        self.filter_venues_olv()
+
+    def ckb_venues_filter_by_control_evt(self, event):
+        choice = event.GetSelection()
+        # 0 = No; 1 = Yes; 2 = Undetermined
+        self.venue_olv.SortBy(1)
+        self.venue_olv.SetSortColumn(None)
+
+        if choice == 1:
+            self.venue_ctrl_filter = Filter.Predicate(lambda x: bool(x["networkdevice"]))  # using bool for truthiness
+            self.controlled_filter_ckb.SetLabelText(' Controlled Venues ')
+        elif choice == 0:
+            self.venue_ctrl_filter = Filter.Predicate(lambda x: (not bool(x["networkdevice"])))
+            self.controlled_filter_ckb.SetLabelText(' Non-controlled Venues ')
+        else:
+            self.venue_ctrl_filter = None
+            self.controlled_filter_ckb.SetLabelText(' Controlled Filter: Off ')
+
+        self.controlled_filter_ckb.Refresh()
+        self.controlled_filter_ckb.Update()
+        self.venue_olv.SetFocus()
+        self.filter_venues_olv()
+
+    def filter_venues_olv(self):
+        last_venue_selected = self.venue_olv.GetSelectedObject()
+        self.venue_filter_args = []
+        if self.venue_ctf_filter:
+            self.venue_filter_args.append(self.venue_ctf_filter)
+        if self.venue_ctrl_filter:
+            self.venue_filter_args.append(self.venue_ctrl_filter)
+        if self.venue_textsearch_filter:
+            self.venue_filter_args.append(self.venue_textsearch_filter)
+        if self.venue_filter_args:  # checking that venue_filter_args is not empty
+            self.venue_olv.SetFilter(Filter.Chain(*self.venue_filter_args))
+            # ^ unpacked venue_filter_args to provide arguments to Filter.Chain
+        else:
+            self.venue_olv.SetFilter(None)  # If there's nothing to filter, the filter is reset to None
+
+        self.venue_olv.RepopulateList()  # Always need to repopulate after doing filter
+
+        if last_venue_selected:
+            selected_venue = self.venue_olv.FindItem(-1, last_venue_selected['name'])
+            venue_index = 0 if selected_venue < 1 else selected_venue
+        else:
+            venue_index = 0
+
+        self.olv_venue_focusselect(venue_index)
+        self.update_venues_count()
+
+    """
+    ### Filtering - Device List 
+    """
+
+    def ckb_device_filter_toggle_evt(self, event):
+        self.device_show_flagged = event.IsChecked()
+        ac_utility.preferences(DATA_DIR, "update", "devicelist_show_flagged", event.IsChecked())
+
+        self.device_olv.SetFocus()
+        self.filter_devices_olv()
+        # ^ possibly do this on close instead
+
+    def filter_devices_olv(self):
+        if not self.device_show_flagged:
+            # filtering out any device name that starts with '*'
+            self.device_olv.SetFilter(Filter.Predicate(lambda x: ("*" not in x[0])))
+        else:
+            self.device_olv.SetFilter(None)  # If there's nothing to filter, the filter is reset to None
+
+        self.device_olv.RepopulateList()  # Always need to repopulate after doing filter
+        self.update_device_count()
+
+        if self.device_olv.GetItemCount():
+            self.button_group_visibility(True)
+            # self.enable_group_buttons()
+            if self.autoping_active:  # this filter runs on venue_select, we might as well auto-ping on change of state
+                self._run_venue_ping()
+        else:
+            self.button_group_visibility(False)
+
+    """
+    ### Venues Panel - Methods 
+    """
+
+    def populate_venues_olv(self):
+        self.venue_olv.SetObjects(venues_full)
+        self.olv_venue_focusselect(0)
+        self.venue_olv.AutoSizeColumns()
+        self.update_venues_count()
+
+    def update_venues_count(self):
+        self.venues_count_label.SetLabel("Venues in list: " + str(self.venue_olv.GetItemCount()))
+        VenuesPanel.Layout(self)  # have to call parent's .Layout to correctly render font & alignment of the label
+
+    def populate_device_olv(self, venue):
+        self.device_olv.SetObjects(venue["networkdevice"])
+        self.filter_devices_olv()
+
+    def button_group_visibility(self, make_visible):
+        exclude_buttons = [self.webcam_open_btn]
+        # webcam_refesh_btn & autoping_btn are wx.ToggleButtons, not wx.Buttons, so aren't effected
+        for control in self.GetChildren():
+            if isinstance(control, wx.Button):
+                if control not in exclude_buttons:
+                    control.Show() if make_visible else control.Hide()
+        self.device_olv.Select(0)
+
+    def enable_group_buttons(self):
+        # Being thorough in minimising the need to redraw the buttons - to prevent flickering
+        venue_device_names = []
+        for row in range(self.device_olv.GetItemCount()):
+            venue_device_names.append(self.device_olv.GetItemText(row, 1))
+
+        if "Touch Panel" or "Extron Touch Panel" in venue_device_names:
+            apply_button_template(self.touchpanel_btn)
+        else:
+            apply_button_template(self.touchpanel_btn, "disabled")
+        if "[Lectern PC]" in venue_device_names:
+            apply_button_template(self.pc_btn)
+        else:
+            apply_button_template(self.pc_btn, "disabled")
+        if "[Echo 360]" in venue_device_names:
+            apply_button_template(self.echo_btn)
+        else:
+            apply_button_template(self.echo_btn, "disabled")
+
+    def update_device_count(self):
+        self.device_count_label.SetLabel("Devices: " + str(self.device_olv.GetItemCount()))
+        # VenuesPanel.Layout(self)  # have to call parent's .Layout to correctly render font & alignment of the label
+
+    def populate_details_section(self, venue):
+        self.venue_name_text.SetLabel(venue["name"])
+        self.building_name_text.SetValue(venue["building"])
+        self.room_number_text.SetValue(venue["code"])
+        self.capacity_text.SetValue(str(venue["capacity"]))
+        self.ctf_text.SetValue(venue["ctf"])
+        self.phone_text.SetValue(venue["phone"])
+        if venue["radmicfreq"]:
+            self.radio_mic_text.SetValue("  ".join(venue["radmicfreq"]))
+        else:
+            self.radio_mic_text.SetValue("")
+        self.notes_text.SetValue(venue["notes"])
+        # self.Layout()  # Had to call layout because the word-wrapped text fields were not sizing properly
+
+        self.populate_imageview(venue["websis"])
+
+    def populate_camview(self, venue, failed=False):
+        camera_type = venue["webcamtype"]
+        camera_ip = venue["webcam"]
+        cam_html, cam_url = None, None
+        image_size_str = ""
+
+        if camera_type:
+            self.webcam_refresh_btn.SetToolTip(camera_ip)
+            self.webcam_refresh_btn.Show()
+            # self.webcam_open_btn.Hide()   # Hide / Show seems to work better at refreshing button text change
+            self.webcam_open_btn.SetLabel(camera_type)
+            self.webcam_open_btn.Refresh()  # If we don't refresh the label text usually overlays itself
+            self.webcam_open_btn.Show()
+            # Get the camera url
+            if camera_type == "SonyCam":
+                cam_url = f"http://{camera_ip}/oneshotimage.jpg"
+                image_size_str = "width='352' height='230'"
+            if camera_type in ["VB10", "VB50", "VB60"]:
+                cam_url = f"http://{camera_ip}/-wvhttp-01-/GetOneShot?"
+                image_size_str = "width='352' height='230'"
+            if camera_type == "VB41":
+                cam_url = f"http://{camera_ip}/-wvhttp-01-/GetOneShot?"
+                # image_size_str = "width='352' height='195'"  # TODO not sure which works best - need to test live
+                image_size_str = "width='415' height='230'"
+
+            # Will probably have to format as html similar to below and use setpage rather than loadurl
+            # TODO consider saving values in prefs as a dictionary formatted as string?
+            # TODO then we can edit each value in an advanced preferences dialogue rather than hard coding
+            # TODO still need to condense /normalise code in this method
+            print(cam_url)
+            # TODO next lines are placeholder until proper url is programmed
+            # cam_url = "https://static.weboffice.uwa.edu.au/visualid/core-rebrand/img/uwacrest/uwacrest-white.png"
+            # cam_url = "https://mrapps.mainroads.wa.gov.au/TrafficImages/CAM00199.jpg"
+            cam_url = "http://136.142.166.244/-wvhttp-01-/GetOneShot?"  # it's a VB60
+            cam_html = "<!DOCTYPE HTML><html><head></head>" \
+                       "<body style='margin: 0px; overflow: hidden;'><img alt='Camera Offline'" \
+                f" {image_size_str} src='{cam_url}'/></body></html>"
+
+        else:
+            # if there is no webcam....
+            self.webcam_open_btn.Hide()
+            self.webcam_refresh_btn.Hide()
+            cam_image = ac_utility.random_file(str(CAM_IMAGE_DIR), [".mp4"])
+            if cam_image:
+                cam_html = "<!doctype html><html><head>" \
+                           "<style type='text/css'>" \
+                           "div{height: 210px; width: 328px; display: inline-block; " \
+                           "vertical-align: top; position: relative;} " \
+                           "video{max-height: 100%; max-width: 100%; width: auto; height: auto; " \
+                           "position: absolute; top: 0; bottom: 0; left: 0; right: 0; margin: auto;}</style>" \
+                           "</head><body><div><video autoplay loop muted playsinline>" \
+                    f"<source src='file:///{str(CAM_IMAGE_DIR / cam_image)}'/>" \
+                           "</video></div></body></html>"
+            else:
+                cam_html = "<!doctype html><html><body><H1>No camera,</br>No awesome GIFs,</br>Sad..</H1></body></html>"
+
+        if failed:
+            cam_html = "<!doctype html><html><body>" \
+                       "<H1>Camera says NO...</H1><H2>Can't connect</H2><H3>Sad...</H3>" \
+                       "</body></html>"
+
+        self.cam_viewer.SetPage(cam_html, "")
+
+    def populate_imageview(self, websis_id):
+        """
+        Dim ImagePage As String = "<!DOCTYPE HTML><html><head><style type='text/css'>img{display: block;
+        margin-left: auto; margin-right: auto; width: 236px; max-height: 157px;}</style></head><body style='margin: 0px;
+        overflow: hidden;'><div><a target='_blank' href='#'><img title='View Full-size'
+        src='" + a.ImageBank(CurrentVenuePic) +"'/></a></div></body></html>"
+        """
+
+        # default image, for when there is no building image in SIS....
+        default_image = 'http://sisfm-enquiry.fm.uwa.edu.au/SISfm-Enquiry/sisdata/photos/thumb/CR/900103_1.jpg'
+        websis_building_image = \
+            f"http://sisfm-enquiry.fm.uwa.edu.au/SISfm-Enquiry/sisdata/photos/thumb/CR/{websis_id[:6]}_1.jpg"
+        if websis_building_image:
+            imageview_string = \
+                "<!doctype html><html><head><style type='text/css'> img{" \
+                "display: block; " \
+                "margin-left: auto; margin-right: auto; " \
+                "width: 256px; max-height: 167px;" \
+                "} </style></head>" \
+                "<body style='margin: 8px; overflow: hidden;'><div>" \
+                    f"<img src='{websis_building_image}' onerror='this.onerror=\"\"; src=\"{default_image}\";'/>" \
+                "</div></body></html>"
+            # !Be aware of the funky quote formatting on the img source line - it's deliberate
+            #  The little bit of code will insert a default image if the called one is missing
+        else:
+            imageview_string = "<!doctype html><html><body><H1>Nothing to show, sad..</H1></body></html>"
+        self.image_viewer.SetPage(imageview_string, "")
+
+    # def telnet_button_evt_notused(self, _):
+    #     self.device_telnet_tb.SetValue(utility.reboot_via_telnet("rainmaker.wunderground.com"))
+
+    def btn_autoping_toggle_evt(self, _):
+        self.autoping_active = not self.autoping_active
+        ac_utility.preferences(DATA_DIR, "update", "ping_on_select", self.autoping_active)
+        if self.autoping_active:
+            apply_button_template(self.autoping_btn, "active_toggle")
+            self._run_venue_ping()  # Fires off a venue ping when enabled
+        else:
+            apply_button_template(self.autoping_btn, "default")
+
+    def btn_ping_evt(self, _):
+        """ runs a ping on the selected device """
+        # TODO at some point look at stopping multiple clicks from queuing - fixed it I think 17/2/19
+        # Todo - check other buttons for the same?
+        # NOTE neither enable() or show() prevent mouse event queuing - ie. clicks still register
+
+        self.ping_btn.Hide()
+        # self.ping_btn.HideWithEffect(wx.SHOW_EFFECT_SLIDE_TO_LEFT, timeout=80)
+        # self.ping_btn.Enable(False)  # tried to disable because the area that the button was showing is still 'active'
+        device_ip = [self.device_olv.GetSelectedObject()[1]]
+        timeout = 1000
+        batchsize = 1
+        index = self.device_olv.GetIndexOf(self.device_olv.GetSelectedObject())
+        self.device_olv.SetItem(index, 2, "")  # clears the current device ping column
+        busy_cursor = wx.BusyCursor()
+        result, _ = ac_ping.start(device_ip, batchsize, timeout)  # don't need the second value (process_time)
+        del busy_cursor
+        self.device_olv.SetItem(index, 2, result[0][1])  # populate device 'ping' column with result
+        # self.ping_btn.ShowWithEffect(wx.SHOW_EFFECT_SLIDE_TO_RIGHT, timeout=80)
+        wx.YieldIfNeeded()  # Trying this to prevent extra clicks caching - seems to work well (with hidden button)
+        self.ping_btn.Show()
+
+    def _run_venue_ping(self, _=None):
+        """ Runs a group ping on the visible venue devices """
+        # Because we are only going to ping what is visible in the list control,
+        # we aren't interested in the underlying venue_devices list
+        list_count = self.device_olv.GetItemCount()
+        timeout = 1000
+        batchsize = prefs_dict["ping_batch_size"]
+        for index in range(list_count):
+            self.device_olv.SetItem(index, 2, "")  # clears the device ping column
+
+        if list_count:
+            if self.autoping_active:
+                apply_button_template(self.autoping_btn, "text_alert")
+                # just a visual indicator that the ping is happening
+            device_ip_list = []
+            # get a list of current ip addresses in device list and send to ping
+            for index in range(list_count):
+                device_ip_list.append(self.device_olv.GetItemText(index, 0))
+            busy_cursor = wx.BusyCursor()
+            result, _ = ac_ping.start(device_ip_list, batchsize, timeout)
+            del busy_cursor
+            # 'result' is a list of tuples [(ip, response),...] elements returned in the order sent
+
+            # populate device list 'ping' column with results
+            for index in range(list_count):
+                self.device_olv.SetItem(index, 2, result[index][1])
+            if self.autoping_active:
+                apply_button_template(self.autoping_btn, "active_toggle")
+                # a visual indicator that the ping has finished
+
+    def olv_venue_focusselect(self, index):
+        """ Move focus and then select a venue in the venue list  """
+        self.venue_olv.Focus(index)
+        self.venue_olv.Select(index)
+
+
+###########################################################################
+# Class SettingsPanel
+###########################################################################
+
+class SettingsPanel(wx.Panel):
+
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.Size(1000, 768),
+                          style=wx.TAB_TRAVERSAL)
+
+        self.SetForegroundColour(wx.Colour(COLOUR_BUTTON_TEXT_LIGHT))
+        self.SetBackgroundColour(wx.Colour(COLOUR_PANEL_BG))
+        self.SetMinSize(wx.Size(1000, 768))
+
+        """
+        ### Initiate empty framework for GUI elements
+        """
+
+        panel_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        """ Information """
+
+        info_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Info"), wx.VERTICAL)
+        apply_text_template(info_sizer.GetStaticBox())
+
+        self.info1 = wx.TextCtrl(self, wx.ID_ANY, "Information coming...", wx.DefaultPosition, wx.DefaultSize,
+                                 wx.TE_MULTILINE | wx.TE_NO_VSCROLL | wx.NO_BORDER)
+        filler = "Admin ID: your 900***** staff number\n\t only used for Dameware access\n\n" \
+                 "Ping Timeout: 1000(milliseconds) is good\n\tDo you like Cheese Whiz? Spray tan? Fake eyelashes? That's what is Lorem Ipsum to many—it rubs them " \
+                 "the wrong way, all the way. It's unreal, uncanny, makes you wonder if something is wrong, it seems " \
+                 "to seek your attention for all the wrong reasons. Usually, we prefer the real thing, wine without " \
+                 "sulfur based preservatives, real butter, not margarine, and so we'd like our layouts and designs to " \
+                 "be filled with real words, with thoughts that count, information that has value.\n" \
+                 "The toppings you may chose for that TV dinner pizza slice when you forgot to shop for foods, " \
+                 "the paint you may slap on your face to impress the new boss is your business. But what about your " \
+                 "daily bread? Design comps, layouts, wireframes—will your clients accept that you go about things " \
+                 "the facile way? Authorities in our business will tell in no uncertain terms that Lorem Ipsum is " \
+                 "that huge, huge no no to forswear forever. Not so fast, I'd say, there are some redeeming factors in" \
+                 "favor of greeking text, its use is merely the symptom of worse problem to take into consideration.\n" \
+                 "You begin with a text, you sculpt information, you chisel away what's not needed, you come to the " \
+                 "point, make things clear, add value, you're a content person, you like words. Design is no " \
+                 "afterthought, far from it, but it comes in a deserved second. Anyway, you still use Lorem Ipsum and " \
+                 "rightly so, as it will always have a place in the web workers toolbox, as things happen, not always " \
+                 "the way you like it, not always in the preferred order. Even if your less into design and more into " \
+                 "content strategy you may find some redeeming value with, wait for it, dummy copy, no less.\n\n" \
+                 "control /name Microsoft.CredentialManager"
+        self.info1.SetLabelText(filler)
+        self.info1.SetBackgroundColour(COLOUR_PANEL_BG)
+        self.info1.SetForegroundColour(COLOUR_TEXT_LABELS)
+        info_sizer.Add(self.info1, 1, wx.EXPAND, 10)
+
+        """ General Settings """
+
+        general_settings_sbsizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "General Settings"), wx.HORIZONTAL)
+        apply_text_template(general_settings_sbsizer.GetStaticBox())
+        gen_settings_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.staffid_label = wx.StaticText(self, wx.ID_ANY, "Admin ID", wx.DefaultPosition, wx.DefaultSize, 0)
+        gen_settings_sizer.Add(self.staffid_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        self.staffid = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
+        gen_settings_sizer.Add(self.staffid, 0, wx.ALL, 5)
+
+        self.ping_timeout_label = wx.StaticText(self, wx.ID_ANY, "Ping Timeout", wx.DefaultPosition, wx.DefaultSize, 0)
+        gen_settings_sizer.Add(self.ping_timeout_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        self.ping_timeout = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
+        gen_settings_sizer.Add(self.ping_timeout, 0, wx.ALL, 5)
+
+        self.camera_refresh_label = wx.StaticText(self, wx.ID_ANY, "Camera Refresh", wx.DefaultPosition,
+                                                  wx.DefaultSize, 0)
+        gen_settings_sizer.Add(self.camera_refresh_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        self.camera_refresh = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
+        gen_settings_sizer.Add(self.camera_refresh, 0, wx.ALL, 5)
+
+        """ Separation line """
+        self.sep_line1 = wx.StaticLine(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL)
+        gen_settings_sizer.Add(self.sep_line1, 0, wx.TOP | wx.BOTTOM | wx.EXPAND, 10)
+
+        """ File selectors """
+        self.main_browser_label = wx.StaticText(self, wx.ID_ANY, "Main Browser")
+        gen_settings_sizer.Add(self.main_browser_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 6)
+
+        self.main_browser = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString,
+                                              "Select the main browser location", "*.exe", wx.DefaultPosition,
+                                              wx.Size(width=-1, height=25),
+                                              wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_SMALL)
+        self.main_browser.SetInitialDirectory("C:")
+        self.main_browser.SetBackgroundColour(COLOUR_PANEL_BG)
+        gen_settings_sizer.Add(self.main_browser, 0, wx.EXPAND, 5)
+
+        self.alt_browser_label = wx.StaticText(self, wx.ID_ANY, "Alternative Browser",
+                                               wx.DefaultPosition, wx.DefaultSize, 0)
+        gen_settings_sizer.Add(self.alt_browser_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        self.alt_browser = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString, "Select the alternative browser location",
+                                             "*.exe", wx.DefaultPosition, wx.DefaultSize,
+                                             wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_SMALL)
+        self.alt_browser.SetInitialDirectory("C:")
+        self.alt_browser.SetBackgroundColour(COLOUR_PANEL_BG)
+        gen_settings_sizer.Add(self.alt_browser, 0, wx.EXPAND, 5)
+
+        self.dameware_label = wx.StaticText(self, wx.ID_ANY, "Dameware(v10)", wx.DefaultPosition, wx.DefaultSize, 0)
+        # self.dameware_label.Wrap(-1)
+        gen_settings_sizer.Add(self.dameware_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        self.dameware = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString,
+                                          "Select the Dameware mini remote control location", "*.exe",
+                                          wx.DefaultPosition, wx.DefaultSize,
+                                          wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_SMALL)
+        self.dameware.SetInitialDirectory("C:")
+        gen_settings_sizer.Add(self.dameware, 0, wx.ALL | wx.EXPAND, 5)
+
+        self.shure_label = wx.StaticText(self, wx.ID_ANY, "Wireless Workbench 6", wx.DefaultPosition, wx.DefaultSize, 0)
+        # self.shure_label.Wrap(-1)
+        gen_settings_sizer.Add(self.shure_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        self.shure = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString,
+                                       "Select the Wireless Workbench 6 (64bit) location", "*.exe",
+                                       wx.DefaultPosition, wx.DefaultSize,
+                                       wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_SMALL)
+        self.shure.SetInitialDirectory("C:")
+        gen_settings_sizer.Add(self.shure, 0, wx.ALL | wx.EXPAND, 5)
+
+        self.vnc_label = wx.StaticText(self, wx.ID_ANY, "VNC", wx.DefaultPosition, wx.DefaultSize, 0)
+        # self.vnc_label.Wrap(-1)
+        gen_settings_sizer.Add(self.vnc_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        self.vnc = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString, "Select the VNC program location", "*.exe",
+                                     wx.DefaultPosition, wx.DefaultSize,
+                                     wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_SMALL)
+        self.vnc.SetInitialDirectory("C:")
+        gen_settings_sizer.Add(self.vnc, 0, wx.ALL | wx.EXPAND, 5)
+
+        self.telnet_label = wx.StaticText(self, wx.ID_ANY, "Telnet", wx.DefaultPosition, wx.DefaultSize, 0)
+        # self.telnet_label.Wrap(-1)
+        gen_settings_sizer.Add(self.telnet_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        self.telnet = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString, "Select the TelnetUltra program location",
+                                        "*.exe", wx.DefaultPosition, wx.DefaultSize,
+                                        wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_SMALL)
+        self.telnet.SetInitialDirectory("C:")
+        gen_settings_sizer.Add(self.telnet, 0, wx.ALL | wx.EXPAND, 5)
+
+        """ Advanced Panel """
+        rhs_panel_sizer = wx.BoxSizer(wx.VERTICAL)
+        advanced_settings_sbsizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Advanced Settings"), wx.HORIZONTAL)
+        apply_text_template(advanced_settings_sbsizer.GetStaticBox())
+        adv_settings_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.bearerkey_label = wx.StaticText(self, wx.ID_ANY, "Key", wx.DefaultPosition, wx.DefaultSize, 0)
+        # self.bearerkey_label.Wrap(-1)
+        adv_settings_sizer.Add(self.bearerkey_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        self.bearerkey = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
+        adv_settings_sizer.Add(self.bearerkey, 0, wx.ALL | wx.EXPAND, 5)
+
+        self.airtableurl_label = wx.StaticText(self, wx.ID_ANY, "AirTable API", wx.DefaultPosition, wx.DefaultSize, 0)
+        # self.airtableurl_label.Wrap(-1)
+        adv_settings_sizer.Add(self.airtableurl_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        self.airtableurl = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
+        adv_settings_sizer.Add(self.airtableurl, 0, wx.ALL | wx.EXPAND, 5)
+
+        self.airtableweb_label = wx.StaticText(self, wx.ID_ANY, "AirTable Web", wx.DefaultPosition, wx.DefaultSize, 0)
+        # self.airtableweb_label.Wrap(-1)
+        adv_settings_sizer.Add(self.airtableweb_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        self.airtableweb = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
+        adv_settings_sizer.Add(self.airtableweb, 0, wx.ALL | wx.EXPAND, 5)
+
+        self.ping_batchsize_label = wx.StaticText(self, wx.ID_ANY, "Ping Batch Size", wx.DefaultPosition,
+                                                  wx.DefaultSize, 0)
+        # self.ping_batchsize_label.Wrap(-1)
+        adv_settings_sizer.Add(self.ping_batchsize_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        self.ping_batchsize = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
+        adv_settings_sizer.Add(self.ping_batchsize, 0, wx.ALL, 5)
+
+        """ Separation line """
+        self.sep_line2 = wx.StaticLine(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL)
+        adv_settings_sizer.Add(self.sep_line2, 0, wx.TOP | wx.BOTTOM | wx.EXPAND, 10)
+
+        self.unlock_button = wx.Button(self, wx.ID_ANY, "Unlock", style=wx.NO_BORDER)
+        apply_button_template(self.unlock_button)
+        adv_settings_sizer.Add(self.unlock_button, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
+
+        self.credentials_button = wx.Button(self, wx.ID_ANY, "Credentials", style=wx.NO_BORDER)
+        apply_button_template(self.credentials_button)
+        adv_settings_sizer.Add(self.credentials_button, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
+
+        """ Button Box spacer """  # Needed to push buttons down to the bottom of the sizer
+        adv_settings_sizer.Add((0, 0), 1, wx.EXPAND, 5)
+
+        """ Page Buttons """
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        # button_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, ""), wx.HORIZONTAL)
+
+        self.default_button = wx.Button(self, wx.ID_ANY, "Defaults", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        self.default_button.SetToolTip("Fills default values in all fields")
+        apply_button_template(self.default_button)
+        button_sizer.Add(self.default_button, 0, wx.ALL, 5)
+
+        self.save_button = wx.Button(self, wx.ID_ANY, "Save", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        self.save_button.SetToolTip("Save changes and exit")
+        apply_button_template(self.save_button)
+        button_sizer.Add(self.save_button, 0, wx.ALL, 5)
+
+        self.cancel_button = wx.Button(self, wx.ID_ANY, "Cancel", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        self.cancel_button.SetToolTip("Cancel changes and exit")
+        apply_button_template(self.cancel_button)
+        button_sizer.Add(self.cancel_button, 0, wx.ALL, 5)
+
+        for control in self.GetChildren():
+            if isinstance(control, wx.StaticText):
+                apply_text_template(control, "details_text")
+
+        for control in self.GetChildren():
+            if isinstance(control, wx.FilePickerCtrl):
+                control.SetBackgroundColour(COLOUR_PANEL_BG)
+
+        general_settings_sbsizer.Add(gen_settings_sizer, 1, wx.ALL | wx.EXPAND, 5)
+        advanced_settings_sbsizer.Add(adv_settings_sizer, 1, wx.ALL | wx.EXPAND, 5)
+        rhs_panel_sizer.Add(advanced_settings_sbsizer, 1, wx.ALL | wx.EXPAND, 0)
+        rhs_panel_sizer.Add(button_sizer, 0, wx.TOP | wx.LEFT | wx.ALIGN_RIGHT, 5)
+
+        panel_sizer.Add(info_sizer, 1, wx.ALL | wx.EXPAND, 5)
+        panel_sizer.Add(general_settings_sbsizer, 2, wx.ALL | wx.EXPAND, 5)
+        panel_sizer.Add(rhs_panel_sizer, 1, wx.ALL | wx.EXPAND, 5)
+
+        self.SetSizer(panel_sizer)
+
+        """
+        ### Setup event binding connections
+        """
+
+        self.Bind(wx.EVT_SHOW, self.populate_preferences_evt)
+        self.unlock_button.Bind(wx.EVT_BUTTON, self.unlock_button_evt)
+        self.credentials_button.Bind(wx.EVT_BUTTON, self.credentials_button_evt)
+        self.save_button.Bind(wx.EVT_BUTTON, self.save_settings_button_evt)
+        self.cancel_button.Bind(wx.EVT_BUTTON, self.cancel_settings_button_evt)
+        self.default_button.Bind(wx.EVT_BUTTON, self.default_settings_button_evt)
+
+    """
+    ### Settings Panel Class -  event handlers 
+    """
+
+    def populate_preferences_evt(self, _):
+        # Bound to the Show event. If app is quit while on this panel, prevent it firing by checking that .self exists
+        if self:
+            self._dict_to_fields(prefs_dict)
+
+            # Disable advanced settings by default
+            self.bearerkey.Enable(False)
+            self.airtableurl.Enable(False)
+            self.airtableweb.Enable(False)
+            self.ping_batchsize.Enable(False)
+
+    def _dict_to_fields(self, d: dict):
+        self.staffid.SetValue(d.get("staff_id", '000000'))
+        self.camera_refresh.SetValue(str(d.get("camera_refresh", 5000)))
+        self.ping_timeout.SetValue(str(d.get("ping_timeout", 1000)))
+        self.main_browser.SetPath(d["main_browser"])
+        self.alt_browser.SetPath(d["alt_browser"])
+        self.dameware.SetPath(d["dameware"])
+        self.shure.SetPath(d["shure"])
+        self.vnc.SetPath(d["vnc"])
+        self.telnet.SetPath(d["telnet"])
+        self.bearerkey.SetValue(d["bearer_key"])
+        self.airtableurl.SetValue(d["airtable_url"])
+        self.airtableweb.SetValue(d["airtable_web"])
+        self.ping_batchsize.SetValue(str(d.get("ping_batch_size", 100)))
+
+    def unlock_button_evt(self, _):
+        secure_fields = [self.bearerkey, self.airtableurl, self.airtableweb, self.ping_batchsize]
+        for field in secure_fields:
+            field.Enable(True)
+        filename = str(RESOURCE_DIR) + "/audio/llamas.wav"
+        sound = Sound(filename)
+        if sound.IsOk():
+            sound.Play(1)
+        else:
+            wx.MessageBox("Invalid sound file", "Error")
+        del sound
+        msg_warn(self, "Be very careful, choosing bad values may\nlock out the program", "! Danger Wil Robinson !")
+
+    def credentials_button_evt(self, _):
+        try:
+            # C:\Windows\System32\control.exe /name Microsoft.CredentialManager
+
+            # Resetting>  "runas.exe /savecred /user:uniwa\"
+            # + Preferences.UserAccountID + " """ + Preferences.Dameware + " -c: -m:"""
+
+            # Hoping that the 90042923 can be fixed with credential manager
+
+            subprocess.Popen(['C:\\Windows\\System32\\control.exe', '/name', 'Microsoft.CredentialManager'])
+            # opens Windows 10 Credential manager
+        except OSError as e:
+            print("Credential Manager failed to run:", e)
+            msg_warn(self, f"Credential Manager failed to run")
+
+    def save_settings_button_evt(self, _):
+        ac_utility.preferences(DATA_DIR, "update", "staff_id", self.staffid.GetValue())
+        ac_utility.preferences(DATA_DIR, "update", "camera_refresh", int(self.camera_refresh.GetValue()))
+        ac_utility.preferences(DATA_DIR, "update", "ping_timeout", int(self.ping_timeout.GetValue()))
+        ac_utility.preferences(DATA_DIR, "update", "main_browser", self.main_browser.GetPath())
+        ac_utility.preferences(DATA_DIR, "update", "alt_browser", self.alt_browser.GetPath())
+        ac_utility.preferences(DATA_DIR, "update", "dameware", self.dameware.GetPath())
+        ac_utility.preferences(DATA_DIR, "update", "shure", self.shure.GetPath())
+        ac_utility.preferences(DATA_DIR, "update", "vnc", self.vnc.GetPath())
+        ac_utility.preferences(DATA_DIR, "update", "telnet", self.telnet.GetPath())
+        ac_utility.preferences(DATA_DIR, "update", "bearer_key", self.bearerkey.GetValue())
+        ac_utility.preferences(DATA_DIR, "update", "airtable_url", self.airtableurl.GetValue())
+        ac_utility.preferences(DATA_DIR, "update", "airtable_web", self.airtableweb.GetValue())
+        ac_utility.preferences(DATA_DIR, "update", "ping_batch_size", int(self.ping_batchsize.GetValue()))
+
+        # reload the preferences from the file on disc
+        global prefs_dict
+        prefs_dict = ac_utility.preferences(DATA_DIR)
+
+        # The method below calls the method handler directly, passing the appropriate item id to switch to main panel
+        MainFrame.switch_panel(self.GetParent(),
+                               wx.CommandEvent(wx.EVT_MENU.typeId, self.GetParent().main_item.GetId()))
+
+    def cancel_settings_button_evt(self, _):
+        MainFrame.switch_panel(self.GetParent(),
+                               wx.CommandEvent(wx.EVT_MENU.typeId, self.GetParent().main_item.GetId()))
+
+    def default_settings_button_evt(self, _):
+        self._dict_to_fields(ac_utility.DEFAULT_PREFS)
+
+
+###########################################################################
+# Class Device Online Report
+###########################################################################
+
+
+class StatisticsReport(wx.Panel):
+
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.Size(1000, 768),
+                          style=wx.TAB_TRAVERSAL)
+
+        # we want a multi-select objectlistview with columns for: venue, device, ip, ping result(in milliseconds?)
+        # we want filtering on all/starred devices and device types.. pc / webcam...
+        # we want clicking row will open main panel at that venue?
+        # we want to be able to re-ping selected devices
+        # we want stats on numbers / success
+
+        # self.SetMinSize(wx.Size(1000, 768))
+
+        panel_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        info_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.branding = wx.StaticText(self, wx.ID_ANY, APP_NAME, wx.DefaultPosition, wx.DefaultSize,
+                                      wx.ALIGN_CENTRE)
+        self.branding.Wrap(-1)
+        self.branding.SetFont(
+            wx.Font(20, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, "Segoe UI Semibold"))
+        self.branding.SetForegroundColour(wx.Colour(255, 128, 0))
+        self.branding.SetBackgroundColour(wx.Colour(128, 0, 0))
+        self.branding.SetMinSize(wx.Size(200, 50))
+
+        info_sizer.Add(self.branding, 0, wx.ALIGN_CENTER | wx.ALL, 20)
+
+        self.version_text = wx.StaticText(self, wx.ID_ANY, f"Version info:\n{BUILD_VER} (beta)",
+                                          wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTRE)
+        self.version_text.Wrap(-1)
+        info_sizer.Add(self.version_text, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+
+        self.info_text = wx.StaticText(self, wx.ID_ANY,
+                                       "what's happening goes here\nto tell user things like airtable loading status",
+                                       wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTRE | wx.DOUBLE_BORDER)
+        self.info_text.Wrap(-1)
+        self.info_text.SetFont(
+            wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, wx.EmptyString))
+        self.info_text.SetMinSize(wx.Size(400, -1))
+
+        info_sizer.Add(self.info_text, 0, wx.ALIGN_CENTER | wx.ALL, 10)
+
+        panel_sizer.Add(info_sizer, 1, wx.ALIGN_CENTER, 5)
+
+        stats_box_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Statistical Summary"), wx.VERTICAL)
+
+        stats_sizer = wx.FlexGridSizer(5, 4, 10, 15)
+
+        ctf_title = wx.StaticText(self, label="CTF")
+        non_ctf_title = wx.StaticText(self, label="Non-CTF")
+        total_title = wx.StaticText(self, label="Total")
+        stats_sizer.AddMany([wx.StaticText(self), ctf_title, non_ctf_title, total_title])
+
+        stats = arsecandi.get_venue_stats(venues_full)
+
+        stats_sizer.AddMany(
+            [wx.StaticText(self, label='Venue Type'), wx.StaticText(self, label=f'{stats["ctf_y"]}'),
+             wx.StaticText(self, label=f'{stats["ctf_n"]}'),
+             wx.StaticText(self, label=f'{stats["ctf_tot"]}'),
+             wx.StaticText(self, label='Venue PCs'), wx.StaticText(self, label=f'{stats["ctf_y_pc"]}'),
+             wx.StaticText(self, label=f'{stats["ctf_n_pc"]}'),
+             wx.StaticText(self, label=f'{stats["ctf_tot_pc"]}'),
+             wx.StaticText(self, label='Venue Cameras'), wx.StaticText(self, label=f'{stats["ctf_y_cam"]}'),
+             wx.StaticText(self, label=f'{stats["ctf_n_cam"]}'),
+             wx.StaticText(self, label=f'{stats["ctf_tot_cam"]}'),
+             wx.StaticText(self, label='Venue Echo Devices'), wx.StaticText(self, label=f'{stats["ctf_y_echo"]}'),
+             wx.StaticText(self, label=f'{stats["ctf_n_echo"]}'),
+             wx.StaticText(self, label=f'{stats["ctf_tot_echo"]}')
+             ])
+
+        stats_box_sizer.Add(stats_sizer, 1, wx.ALIGN_CENTER | wx.ALL | wx.EXPAND, 15)
+        panel_sizer.Add(stats_box_sizer, 1, wx.ALIGN_CENTER | wx.ALL | wx.EXPAND, 5)
+
+        self.SetSizer(panel_sizer)
+        self.Layout()
+
+        ###########################################################################
+        # Class WebCam Frame
+        ###########################################################################
+
+
+class WebCamFrame(wx.Frame):
+    """"""
+
+    def __init__(self, title, size, address):
+        """Constructor"""
+        wx.Frame.__init__(self, None, title=title, size=size)
+        self.sizer = wx.BoxSizer()
+        panel = wx.Panel(self)
+        cam_viewer = wx.html2.WebView.New(self, wx.ID_ANY, address, wx.DefaultPosition, wx.Size(size))
+
+        # TODO
+        # Might have to use wx.html.HtmlWindow for older webcams... maybe?
+        # Might have to wrap the viewer in html like I did on the webcam image viewer?
+        self.sizer.Add(cam_viewer, 1, wx.EXPAND)
+
+        self.SetSizer(self.sizer)
+
+
+###########################################################################
+# Class AirtableConnectDialogue
+###########################################################################
+
+# Todo not using - might remove ?
+class AirtableConnectDialogue(wx.Dialog):
+
+    def __init__(self, parent):
+        wx.Dialog.__init__(self, parent, id=wx.ID_ANY, title="Welcome", pos=wx.DefaultPosition, size=wx.DefaultSize,
+                           style=wx.DEFAULT_DIALOG_STYLE)
+
+        self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
+
+        bSizer1 = wx.BoxSizer(wx.VERTICAL)
+
+        bSizer1.SetMinSize(wx.Size(100, 100))
+        self.title = wx.StaticText(self, wx.ID_ANY, "ArseCandi (2019)", wx.DefaultPosition, wx.DefaultSize,
+                                   wx.ALIGN_CENTRE)
+        self.title.Wrap(-1)
+        self.title.SetFont(wx.Font(14, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, "Segoe UI"))
+        self.title.SetForegroundColour(wx.Colour(255, 0, 128))
+
+        bSizer1.Add(self.title, 0, wx.ALL | wx.EXPAND, 10)
+
+        self.splash_hint = wx.StaticText(self, wx.ID_ANY, "Loading data from Airtable", wx.DefaultPosition,
+                                         wx.DefaultSize, 0)
+        self.splash_hint.Wrap(-1)
+        bSizer1.Add(self.splash_hint, 0, wx.ALL, 5)
+
+        self.SetSizer(bSizer1)
+        # self.Layout()
+        bSizer1.Fit(self)
+
+        self.Centre(wx.BOTH)
+        self.Layout()
+
+
+###########################################################################
+# Class MainFrame
+###########################################################################
+
+class MainFrame(wx.Frame):
+
+    def __init__(self, parent):
+        wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=APP_NAME, pos=wx.DefaultPosition,
+                          size=wx.Size(-1, -1), style=wx.DEFAULT_FRAME_STYLE | wx.TAB_TRAVERSAL)
+        win_width, win_height = prefs_dict["win_size"]
+        win_max = prefs_dict["win_max"]
+        self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
+        self.SetIcon(wx.Icon(str(RESOURCE_DIR) + "/64-Candy-icon.png", wx.BITMAP_TYPE_PNG))
+        self.SetMinSize(wx.Size(1412, 768))
+        if not win_max:
+            self.SetSize(win_width, win_height)
+        else:
+            self.Maximize()
+            self.SetSize(win_width, win_height)
+        sizer = wx.BoxSizer()
+
+        # Tooltip delays seem to be across the app (not window/button specific)
+        wx.ToolTip.SetDelay(800)
+        wx.ToolTip.SetAutoPop(4000)
+
+        self.main_panel = VenuesPanel(self)
+        sizer.Add(self.main_panel, 1, wx.EXPAND, 5)
+        self.settings_panel = SettingsPanel(self)
+        sizer.Add(self.settings_panel, 1, wx.EXPAND, 5)
+        self.online_report = StatisticsReport(self)
+        sizer.Add(self.online_report, 1, wx.EXPAND, 5)
+        self.settings_panel.Hide()
+        self.online_report.Hide()
+
+        self.SetSizer(sizer)
+        self.Centre(wx.BOTH)
+        self.SetPosition(prefs_dict["win_pos"])
+        self.Layout()
+        """
+        ### Setup menu bar
+        """
+        menubar = wx.MenuBar()  # instantiate a MenuBar object
+        menubar.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_BTNFACE))
+        self.file = wx.Menu()  # instantiate a Menu object
+        self.view = wx.Menu()
+
+        # instantiate a Menu Item object and add to Menu
+        self.main_item = wx.MenuItem(self.file, wx.ID_ANY, "&Main", "View main window", wx.ITEM_NORMAL)
+        self.view.Append(self.main_item)
+        self.main_item.Enable(False)
+        self.settings_item = wx.MenuItem(self.file, wx.ID_ANY, "&Settings", "View or Change ArseCandi options",
+                                         wx.ITEM_NORMAL)
+        self.view.Append(self.settings_item)
+        self.report_item = wx.MenuItem(self.file, wx.ID_ANY, "&Online Report", "Check Venue device connections",
+                                       wx.ITEM_NORMAL)
+        self.view.Append(self.report_item)
+        self.view.AppendSeparator()  # add a separator to Menu
+        self.view.Append(wx.ID_ABOUT, "About")
+
+        self.refresh_item = wx.MenuItem(self.file, wx.ID_ANY, "&Refresh", "Refresh data from AirTable", wx.ITEM_NORMAL)
+        self.file.Append(self.refresh_item)
+        self.file.AppendSeparator()
+        exit_item = wx.MenuItem(self.file, wx.ID_EXIT, "&Exit", wx.EmptyString, wx.ITEM_NORMAL)
+        self.file.Append(exit_item)
+
+        menubar.Append(self.file, "&File")  # add Menu object to MenuBar object
+        menubar.Append(self.view, "&View")
+
+        self.SetMenuBar(menubar)  # add MenuBar object to MainFrame
+
+        """
+        ### Setup status bar
+        """
+        self.status_bar = self.CreateStatusBar(3, wx.STB_SIZEGRIP, wx.ID_ANY)
+        self.status_bar.SetStatusWidths([-1, 274, 274])
+        self.status_bar.SetBackgroundColour(wx.Colour(COLOUR_TEXT_LABELS))
+        self.status_bar.SetForegroundColour(wx.Colour(COLOUR_TEXT_LABELS))
+        self.PushStatusText(f'Current data date: {ac_utility.get_file_timestamp(DATA_DIR / "icandi.json")}', 1)
+        last_update_time = time.strftime('%d %b %Y %H:%M:%S', prefs_dict["last_data_refresh"])
+        self.PushStatusText(f'Last checked for updates: {last_update_time}', 2)
+        self.status_bar.Enable(False)
+
+        """
+        ### Setup event binding connections
+        """
+        # Bind a MenuEvent (clicking the exit_item) to the method quit_app
+        # self.Bind(wx.EVT_MENU, self.Close, id=exit_item.GetId())
+        self.Bind(wx.EVT_MENU, self.quit_app, id=exit_item.GetId())
+        self.Bind(wx.EVT_MENU, self.refresh_menu_evt, id=self.refresh_item.GetId())
+        self.Bind(wx.EVT_MENU, self.switch_panel, id=self.settings_item.GetId())
+        self.Bind(wx.EVT_MENU, self.switch_panel, id=self.main_item.GetId())
+        self.Bind(wx.EVT_MENU, self.switch_panel, id=self.report_item.GetId())
+        self.Bind(wx.EVT_MENU, on_about, id=wx.ID_ABOUT)
+        self.Bind(wx.EVT_CLOSE, self.close_n_tidy)
+        self.status_bar.Bind(wx.EVT_LEFT_DOWN, self.status_click_evt)
+
+        # Once the Main Panel has been drawn and populated, we can run a check to see if the data needs refreshing
+        # This is done by comparing the AirTable JSON with the JSON we've just used to populate the app
+        if bg_refresh_permitted(update_has_run):
+            self.refresh_data()
+
+    def switch_panel(self, event):
+        main_sel = event.GetId() == self.main_item.GetId()
+        settings_sel = event.GetId() == self.settings_item.GetId()
+        report_sel = event.GetId() == self.report_item.GetId()
+        if report_sel:
+            self.SetTitle("Status Report")
+        elif settings_sel:
+            self.SetTitle("Settings and Preferences")
+        else:
+            self.SetTitle(APP_NAME)
+
+        self.main_item.Enable(not main_sel)
+        self.settings_item.Enable(not settings_sel)
+        self.report_item.Enable(not report_sel)
+
+        self.settings_panel.Show(settings_sel)
+        self.online_report.Show(report_sel)
+        self.main_panel.Show(main_sel)
+        self.Layout()
+
+    def close_n_tidy(self, event):
+        # Preserving window metrics in preferences for next start-up
+        maxed = self.IsMaximized()
+        win_x, win_y = self.GetPosition()
+        width, height = self.GetSize()
+        # The following doesn't seem to be needed on an extended desktop
+        # win_monitor = wx.Display.GetFromWindow(self)
+        # print(win_x, win_y, width, height, maxed, win_monitor)
+        ac_utility.preferences(DATA_DIR, "update", "win_max", maxed)
+        if not maxed:
+            ac_utility.preferences(DATA_DIR, "update", "win_pos", (win_x, win_y))
+            ac_utility.preferences(DATA_DIR, "update", "win_size", (width, height))
+        else:
+            ac_utility.preferences(DATA_DIR, "update", "win_pos",
+                                   (win_x + 25, win_y + 25))  # +25 fix autohide top taskbar
+
+        self.main_panel.Hide()  # for some reason raises c++ assert error if this panel still shows when closing?!?!
+        self.main_panel.timer.Stop()  # Ensure the webcam monitor timer is stopped before exit
+        del self.main_panel.timer  # precaution only - don't think it matters
+
+        event.Skip()
+
+    def refresh_menu_evt(self, _):
+        self.refresh_data()
+
+    def refresh_data(self):
+        prev_sb1_text = self.status_bar.GetStatusText(1)
+        self.PopStatusText(1)
+        prev_sb2_text = self.status_bar.GetStatusText(2)
+        self.PopStatusText(2)
+        self.PushStatusText("ArseCandi: Checking for updates", 2)
+
+        startWorker(self._process_update, self._run_silent_update, cargs=(prev_sb1_text, prev_sb2_text,), jobID=6969)
+
+    def _run_silent_update(self):
+        results = arsecandi.get_venue_list(DATA_DIR, True)  # results => (venues_full_tmp, update_ready, failed_msg)
+        return results
+
+    def _process_update(self, worker_fn, prv_sb1_text, prv_sb2_text):
+        global venues_full
+
+        def _restore_status_text(sb1_text, sb2_text):
+            # Reset the status bar text to what it was before trying to update
+            self.PushStatusText(sb1_text, 1)
+            self.PopStatusText(2)
+            self.PushStatusText(sb2_text, 2)
+
+        venues_full_tmp, update_ready, failed_msg = worker_fn.get()
+
+        if failed_msg:
+            msg_warn(self, failed_msg)
+            _restore_status_text(prv_sb1_text, prv_sb2_text)
+
+        else:
+            if update_ready:
+                venues_full = venues_full_tmp
+                self.PopStatusText(2)
+                self.PushStatusText("New data available: click to update", 2)
+                self.status_bar.Enable()
+            else:
+                _restore_status_text(prv_sb1_text, prv_sb2_text)
+
+    def _push_new_data(self):
+        self.main_panel.venue_olv.SetObjects(venues_full, True)
+
+        # this is just to scroll the last selected venue into view (if needed)
+        if not self.main_panel.venue_olv.GetSelectedObject():
+            self.main_panel.olv_venue_focusselect(0)
+        else:
+            s_obj = self.main_panel.venue_olv.GetSelectedObject()
+            print(s_obj)
+            i_obj = self.main_panel.venue_olv.GetIndexOf(s_obj)
+            print(i_obj)
+            self.main_panel.venue_olv.EnsureCellVisible(i_obj, 0)
+
+        current_time = time.strftime('%d %b %Y %H:%M:%S', time.localtime())
+        current_data_date = ac_utility.get_file_timestamp(DATA_DIR / "icandi.json")
+        self.PopStatusText(2)
+        self.PushStatusText(f"Current data date: {current_data_date}", 1)
+        self.PushStatusText(f"Last checked for updates: {current_time}", 2)
+
+    def status_click_evt(self, _):
+        self._push_new_data()
+        self.status_bar.Enable(False)
+
+    # Quits the frame... closing the window / app
+    def quit_app(self, _):
+        self.Close()
+
+
+"""
+### GUI - widget formatting Methods 
+"""
+
+
+def apply_button_template(button: wx.AnyButton, style="default"):
+    """ Styles: default; active_toggle; text_alert; disabled"""
+
+    fnt = button.GetFont()
+    if style == "default":  # Default style for any button
+        fnt.SetPointSize(APP_FS + 1)
+        fnt.SetWeight(wx.FONTWEIGHT_BOLD)
+        button.SetBackgroundColour(COLOUR_BUTTON_DEFAULT)
+        button.SetForegroundColour(COLOUR_BUTTON_TEXT_LIGHT)
+        button.Enable(True)
+    elif style == "active_toggle":  # A style for an active toggle button
+        fnt.SetPointSize(APP_FS + 1)
+        fnt.SetWeight(wx.FONTWEIGHT_BOLD)
+        button.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_BTNFACE))
+        button.SetForegroundColour(COLOUR_BUTTON_TEXT_ACTIVE)
+    elif style == "text_alert":
+        button.SetForegroundColour(COLOUR_BUTTON_TEXT_ALERT)
+    elif style == "disabled":
+        button.SetBackgroundColour(COLOUR_BUTTON_DISABLED)
+        button.SetForegroundColour(COLOUR_BUTTON_TEXT_DISABLED)
+        button.Enable(False)  # System overrides text colour setting when button disabled
+
+    button.SetFont(fnt)
+
+
+def apply_text_template(text: wx.TEXT_TYPE_ANY, style="stb_default"):
+    """ Styles: stb_default; details_label; details_venue_name; details_text """
+
+    fnt = text.GetFont()
+    if style == "stb_default":  # Default style for static text box labels
+        text.SetForegroundColour(COLOUR_BUTTON_TEXT_ACTIVE)
+        fnt.SetPointSize(APP_FS + 2)
+        text.SetOwnFont(fnt)
+    elif style == "details_label":  # A style for the venue details - labels
+        text.SetForegroundColour(COLOUR_TEXT_LABELS)
+        text.SetBackgroundColour(COLOUR_PANEL_BG)
+        fnt.SetPointSize(APP_FS + 2)
+        text.SetOwnFont(fnt)
+    elif style == "details_venue_name":  # A style for the venue details - venue name
+        text.SetForegroundColour(COLOUR_TEXT_DATA)
+        text.SetBackgroundColour(COLOUR_PANEL_BG)
+        fnt.SetFaceName("Segoe UI Semibold")
+        fnt.SetPointSize(APP_FS + 3)
+        text.SetOwnFont(fnt)
+    elif style == "details_text":  # A style for the venue details - data
+        text.SetForegroundColour(COLOUR_TEXT_DATA)
+        text.SetBackgroundColour(COLOUR_PANEL_BG)
+        text.SetMinSize((-1, 21))
+        fnt.SetFaceName("Segoe UI Semibold")
+        fnt.SetPointSize(APP_FS + 2)
+        text.SetOwnFont(fnt)
+
+
+"""
+### GUI - Dialogue & Message boxes 
+"""
+
+
+def on_about(_):
+    about_info = AboutDialogInfo()
+    about_info.SetName(APP_NAME)
+    about_info.SetVersion(BUILD_VER)
+    about_info.SetDescription(
+        """\n      A Really Self Evident Computer and Network Device Interface
+        \n        [ a consolidated front-end for the monitoring and control of remote        
+            Audio-Visual devices installed within the UWA campus network ]\n\n
+        Connections exist for the following applications:
+                AirTable
+                Asana
+                WebSiS
+                DameWare(10)64bit
+                telnetUltra
+                UltraVNC
+                Wireless Workbench 6
+                WMI Ping
+        """)
+    about_info.SetCopyright("(C) 2019  Peter C Todd")
+    about_info.SetWebSite("http://www.vitamin-ha.com/wp-content/uploads/2012/11/meanwhile-in-scotland.jpg",
+                          "UWA Audio-Visual")
+    wx.adv.AboutBox(about_info)
+
+
+def msg_warn(parent, message, caption="Warning!"):
+    dlg = wx.MessageDialog(parent, message, caption, wx.OK | wx.ICON_WARNING)
+    dlg.ShowModal()
+    dlg.Destroy()
+
+
+def bg_refresh_permitted(new_data=False):
+    """
+    Determines if there's a need to do a background (threaded) check of our data against AirTable data.
+
+    If we've already fetched new data on loading OR the data in app was already checked today, we skip doing the refresh
+
+    :param new_data: True means that a new JSON file has already been loaded into the app
+    :return: boolean: True -> Permit background refresh; False -> don't permit background refresh
+    """
+
+    now = time.localtime()  # format is (tm_year,tm_mon,tm_mday,tm_hour,tm_min, tm_sec,tm_wday,tm_yday,tm_isdst)
+    last = prefs_dict["last_data_refresh"]  # stored in the same format as above
+    if not (now[2] == last[2]) or new_data:
+        print(now[2], last[2], now[2] == last[2])
+        print(bool(not new_data))
+        return True
+
+    return False
+
+
+# # TODO Not used? remove if not needed
+# def msg_warn_option(parent, message, caption="Caution!"):
+#     dlg = wx.MessageDialog(parent, message, caption, wx.YES_NO | wx.ICON_EXCLAMATION)
+#     result = dlg.ShowModal()
+#     dlg.Destroy()
+#     return result
+
+
+if __name__ == '__main__':
+    app = wx.App(False)
+    # a list of venue dictionaries, needed before drawing VenuesPanel
+    venues_full, update_has_run, fail_msg = arsecandi.get_venue_list(DATA_DIR)
+
+    if fail_msg:
+        msg_warn(None, fail_msg)
+        if not venues_full:
+            print('No data: shutting down ArseCandi')
+            quit()
+
+    # If we've just loaded data from Airtable, we don't need to do another refresh in the background
+    print(f'Background refresh will run?: {bg_refresh_permitted(update_has_run)}')
+
+    # wx.lib.inspection.InspectionTool().Show()
+    MainFrame(None).Show()
+    app.MainLoop()
