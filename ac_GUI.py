@@ -3,6 +3,7 @@ import subprocess
 from operator import itemgetter
 
 import wx
+import wx.html
 import wx.html2
 import wx.grid
 from wx.lib.delayedresult import startWorker
@@ -1196,31 +1197,26 @@ class SettingsPanel(wx.Panel):
         info_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Info"), wx.VERTICAL)
         apply_text_template(info_sizer.GetStaticBox())
 
-        self.info1 = wx.TextCtrl(self, wx.ID_ANY, "Information coming...", wx.DefaultPosition, wx.DefaultSize,
-                                 wx.TE_MULTILINE | wx.TE_NO_VSCROLL | wx.NO_BORDER)
-        filler = "Admin ID: your 900***** staff number\n\t only used for Dameware access\n\n" \
-                 "Ping Timeout: 1000(milliseconds) is good\n\tDo you like Cheese Whiz? Spray tan? Fake eyelashes? That's what is Lorem Ipsum to many—it rubs them " \
-                 "the wrong way, all the way. It's unreal, uncanny, makes you wonder if something is wrong, it seems " \
-                 "to seek your attention for all the wrong reasons. Usually, we prefer the real thing, wine without " \
-                 "sulfur based preservatives, real butter, not margarine, and so we'd like our layouts and designs to " \
-                 "be filled with real words, with thoughts that count, information that has value.\n" \
-                 "The toppings you may chose for that TV dinner pizza slice when you forgot to shop for foods, " \
-                 "the paint you may slap on your face to impress the new boss is your business. But what about your " \
-                 "daily bread? Design comps, layouts, wireframes—will your clients accept that you go about things " \
-                 "the facile way? Authorities in our business will tell in no uncertain terms that Lorem Ipsum is " \
-                 "that huge, huge no no to forswear forever. Not so fast, I'd say, there are some redeeming factors in" \
-                 "favor of greeking text, its use is merely the symptom of worse problem to take into consideration.\n" \
-                 "You begin with a text, you sculpt information, you chisel away what's not needed, you come to the " \
-                 "point, make things clear, add value, you're a content person, you like words. Design is no " \
-                 "afterthought, far from it, but it comes in a deserved second. Anyway, you still use Lorem Ipsum and " \
-                 "rightly so, as it will always have a place in the web workers toolbox, as things happen, not always " \
-                 "the way you like it, not always in the preferred order. Even if your less into design and more into " \
-                 "content strategy you may find some redeeming value with, wait for it, dummy copy, no less.\n\n" \
-                 "control /name Microsoft.CredentialManager"
-        self.info1.SetLabelText(filler)
-        self.info1.SetBackgroundColour(COLOUR_PANEL_BG)
-        self.info1.SetForegroundColour(COLOUR_TEXT_LABELS)
-        info_sizer.Add(self.info1, 1, wx.EXPAND, 10)
+        self.htmlwin = wx.html.HtmlWindow(self, wx.ID_ANY, style=wx.NO_BORDER)
+
+        self.htmlwin.AppendToPage("""
+            <font color='white'>
+            <p><b>Admin ID:</b> your 900***** staff number<ul><li>Only used for Dameware access</li></ul></p>
+            <p><b>Credentials:</b> Access to Windows Credentials<ul><li>Change UWA Admin stored password</li></ul></p>           
+            <p><b>Ping Timeout:</b> 1000(ms) recommended<ul><li>Altering effects Ping & AutoPing durations</li>
+            <li>Too short: False Timed Out messages</li><li>Too long: Ping may be slower to finish</li></ul></p>
+            <p><b>Ping Batch Size:</b> 100 is modest (1 - 2000)<ul><li>Simultaneous ping connections</li></ul></p>
+            <p><b>Camera Refresh:</b> 5000(ms) is modest<ul><li>How often the webcam image updates</li></ul></p>
+            <p><b>File Locations:</b><ul><li>Chrome is the preferred Main Browser</li>
+            <li>IE or Edge for the Alternative Browser</li><li>Dameware's 64bit mini-remote (DWRCC.exe)</li>
+            <li>VNC: Give preference to UltraVNC</li><li>Telnet: either from the Windows\WinSxS directory</li>
+            <li>or use TelnetUltra in ArseCandi's bin folder</li></ul></p>
+            <p><b>Advanced Settings:</b><ul><li>The AirTable settings should never need to be changed</li>
+            <li>Unless Peter tells you to change them</li></ul></p>
+            """)
+
+        self.htmlwin.SetBackgroundColour(COLOUR_PANEL_BG)
+        info_sizer.Add(self.htmlwin, 1, wx.EXPAND, 10)
 
         """ General Settings """
 
@@ -1228,24 +1224,58 @@ class SettingsPanel(wx.Panel):
         apply_text_template(general_settings_sbsizer.GetStaticBox())
         gen_settings_sizer = wx.BoxSizer(wx.VERTICAL)
 
+        staffsizer_h = wx.BoxSizer()
+        staffsizer_v1 = wx.BoxSizer(wx.VERTICAL)
+
         self.staffid_label = wx.StaticText(self, wx.ID_ANY, "Admin ID", wx.DefaultPosition, wx.DefaultSize, 0)
-        gen_settings_sizer.Add(self.staffid_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+        staffsizer_v1.Add(self.staffid_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
 
         self.staffid = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
-        gen_settings_sizer.Add(self.staffid, 0, wx.ALL, 5)
+        staffsizer_v1.Add(self.staffid, 0, wx.ALL, 5)
+
+        staffsizer_h.Add(staffsizer_v1, 0, wx.ALL, 5)
+
+        staffsizer_v2 = wx.BoxSizer(wx.VERTICAL)
+
+        self.credentials_button = wx.Button(self, wx.ID_ANY, "Credentials", size=wx.Size(110, 23), style=wx.NO_BORDER)
+        apply_button_template(self.credentials_button)
+        self.credentials_button.SetToolTip("Change Admin password locally")
+        staffsizer_v2.Add(self.credentials_button, 0, wx.ALL | wx.ALIGN_BOTTOM, 5)
+
+        staffsizer_h.Add(staffsizer_v2, 0, wx.ALL | wx.ALIGN_BOTTOM, 5)
+        gen_settings_sizer.Add(staffsizer_h, 0, wx.LEFT, 0)
+
+        pingsizer_h = wx.BoxSizer()
+        pingsizer_v1 = wx.BoxSizer(wx.VERTICAL)
 
         self.ping_timeout_label = wx.StaticText(self, wx.ID_ANY, "Ping Timeout", wx.DefaultPosition, wx.DefaultSize, 0)
-        gen_settings_sizer.Add(self.ping_timeout_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+        pingsizer_v1.Add(self.ping_timeout_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
 
         self.ping_timeout = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
-        gen_settings_sizer.Add(self.ping_timeout, 0, wx.ALL, 5)
+        pingsizer_v1.Add(self.ping_timeout, 0, wx.ALL, 5)
 
+        pingsizer_h.Add(pingsizer_v1, 0, wx.ALL, 5)
+
+        pingsizer_v2 = wx.BoxSizer(wx.VERTICAL)
+        self.ping_batchsize_label = wx.StaticText(self, wx.ID_ANY, "Ping Batch Size", wx.DefaultPosition,
+                                                  wx.DefaultSize, 0)
+
+        pingsizer_v2.Add(self.ping_batchsize_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        self.ping_batchsize = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
+        pingsizer_v2.Add(self.ping_batchsize, 0, wx.ALL, 5)
+
+        pingsizer_h.Add(pingsizer_v2, 0, wx.ALL, 5)
+        gen_settings_sizer.Add(pingsizer_h, 0, wx.ALL, 0)
+
+        camsizer_v = wx.BoxSizer(wx.VERTICAL)
         self.camera_refresh_label = wx.StaticText(self, wx.ID_ANY, "Camera Refresh", wx.DefaultPosition,
                                                   wx.DefaultSize, 0)
-        gen_settings_sizer.Add(self.camera_refresh_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+        camsizer_v.Add(self.camera_refresh_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
 
         self.camera_refresh = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
-        gen_settings_sizer.Add(self.camera_refresh, 0, wx.ALL, 5)
+        camsizer_v.Add(self.camera_refresh, 0, wx.ALL, 5)
+        gen_settings_sizer.Add(camsizer_v, 0, wx.LEFT, 5)
 
         """ Separation line """
         self.sep_line1 = wx.StaticLine(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL)
@@ -1255,28 +1285,25 @@ class SettingsPanel(wx.Panel):
         self.main_browser_label = wx.StaticText(self, wx.ID_ANY, "Main Browser")
         gen_settings_sizer.Add(self.main_browser_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 6)
 
-        self.main_browser = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString,
-                                              "Select the main browser location", "*.exe", wx.DefaultPosition,
-                                              wx.Size(width=-1, height=25),
+        self.main_browser = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString, "Select the main browser location",
+                                              "*.exe", wx.DefaultPosition, wx.DefaultSize,
                                               wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_SMALL)
         self.main_browser.SetInitialDirectory("C:")
         self.main_browser.SetBackgroundColour(COLOUR_PANEL_BG)
-        gen_settings_sizer.Add(self.main_browser, 0, wx.EXPAND, 5)
+        gen_settings_sizer.Add(self.main_browser, 0, wx.ALL | wx.EXPAND, 5)
 
-        self.alt_browser_label = wx.StaticText(self, wx.ID_ANY, "Alternative Browser",
-                                               wx.DefaultPosition, wx.DefaultSize, 0)
-        gen_settings_sizer.Add(self.alt_browser_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+        self.alt_browser_label = wx.StaticText(self, wx.ID_ANY, "Alternative Browser")
+        gen_settings_sizer.Add(self.alt_browser_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 6)
 
         self.alt_browser = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString, "Select the alternative browser location",
                                              "*.exe", wx.DefaultPosition, wx.DefaultSize,
                                              wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_SMALL)
         self.alt_browser.SetInitialDirectory("C:")
         self.alt_browser.SetBackgroundColour(COLOUR_PANEL_BG)
-        gen_settings_sizer.Add(self.alt_browser, 0, wx.EXPAND, 5)
+        gen_settings_sizer.Add(self.alt_browser, 0, wx.ALL | wx.EXPAND, 5)
 
-        self.dameware_label = wx.StaticText(self, wx.ID_ANY, "Dameware(v10)", wx.DefaultPosition, wx.DefaultSize, 0)
-        # self.dameware_label.Wrap(-1)
-        gen_settings_sizer.Add(self.dameware_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+        self.dameware_label = wx.StaticText(self, wx.ID_ANY, "Dameware(v10)")
+        gen_settings_sizer.Add(self.dameware_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 6)
 
         self.dameware = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString,
                                           "Select the Dameware mini remote control location", "*.exe",
@@ -1285,9 +1312,8 @@ class SettingsPanel(wx.Panel):
         self.dameware.SetInitialDirectory("C:")
         gen_settings_sizer.Add(self.dameware, 0, wx.ALL | wx.EXPAND, 5)
 
-        self.shure_label = wx.StaticText(self, wx.ID_ANY, "Wireless Workbench 6", wx.DefaultPosition, wx.DefaultSize, 0)
-        # self.shure_label.Wrap(-1)
-        gen_settings_sizer.Add(self.shure_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+        self.shure_label = wx.StaticText(self, wx.ID_ANY, "Wireless Workbench 6")
+        gen_settings_sizer.Add(self.shure_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 6)
 
         self.shure = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString,
                                        "Select the Wireless Workbench 6 (64bit) location", "*.exe",
@@ -1296,9 +1322,8 @@ class SettingsPanel(wx.Panel):
         self.shure.SetInitialDirectory("C:")
         gen_settings_sizer.Add(self.shure, 0, wx.ALL | wx.EXPAND, 5)
 
-        self.vnc_label = wx.StaticText(self, wx.ID_ANY, "VNC", wx.DefaultPosition, wx.DefaultSize, 0)
-        # self.vnc_label.Wrap(-1)
-        gen_settings_sizer.Add(self.vnc_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+        self.vnc_label = wx.StaticText(self, wx.ID_ANY, "VNC")
+        gen_settings_sizer.Add(self.vnc_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 6)
 
         self.vnc = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString, "Select the VNC program location", "*.exe",
                                      wx.DefaultPosition, wx.DefaultSize,
@@ -1306,9 +1331,8 @@ class SettingsPanel(wx.Panel):
         self.vnc.SetInitialDirectory("C:")
         gen_settings_sizer.Add(self.vnc, 0, wx.ALL | wx.EXPAND, 5)
 
-        self.telnet_label = wx.StaticText(self, wx.ID_ANY, "Telnet", wx.DefaultPosition, wx.DefaultSize, 0)
-        # self.telnet_label.Wrap(-1)
-        gen_settings_sizer.Add(self.telnet_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+        self.telnet_label = wx.StaticText(self, wx.ID_ANY, "Telnet")
+        gen_settings_sizer.Add(self.telnet_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 6)
 
         self.telnet = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString, "Select the TelnetUltra program location",
                                         "*.exe", wx.DefaultPosition, wx.DefaultSize,
@@ -1322,7 +1346,7 @@ class SettingsPanel(wx.Panel):
         apply_text_template(advanced_settings_sbsizer.GetStaticBox())
         adv_settings_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.bearerkey_label = wx.StaticText(self, wx.ID_ANY, "Key", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.bearerkey_label = wx.StaticText(self, wx.ID_ANY, "AirTable Key", wx.DefaultPosition, wx.DefaultSize, 0)
         # self.bearerkey_label.Wrap(-1)
         adv_settings_sizer.Add(self.bearerkey_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
 
@@ -1343,14 +1367,6 @@ class SettingsPanel(wx.Panel):
         self.airtableweb = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
         adv_settings_sizer.Add(self.airtableweb, 0, wx.ALL | wx.EXPAND, 5)
 
-        self.ping_batchsize_label = wx.StaticText(self, wx.ID_ANY, "Ping Batch Size", wx.DefaultPosition,
-                                                  wx.DefaultSize, 0)
-        # self.ping_batchsize_label.Wrap(-1)
-        adv_settings_sizer.Add(self.ping_batchsize_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
-
-        self.ping_batchsize = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
-        adv_settings_sizer.Add(self.ping_batchsize, 0, wx.ALL, 5)
-
         """ Separation line """
         self.sep_line2 = wx.StaticLine(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL)
         adv_settings_sizer.Add(self.sep_line2, 0, wx.TOP | wx.BOTTOM | wx.EXPAND, 10)
@@ -1358,10 +1374,6 @@ class SettingsPanel(wx.Panel):
         self.unlock_button = wx.Button(self, wx.ID_ANY, "Unlock", style=wx.NO_BORDER)
         apply_button_template(self.unlock_button)
         adv_settings_sizer.Add(self.unlock_button, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
-
-        self.credentials_button = wx.Button(self, wx.ID_ANY, "Credentials", style=wx.NO_BORDER)
-        apply_button_template(self.credentials_button)
-        adv_settings_sizer.Add(self.credentials_button, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
 
         """ Button Box spacer """  # Needed to push buttons down to the bottom of the sizer
         adv_settings_sizer.Add((0, 0), 1, wx.EXPAND, 5)
@@ -1428,12 +1440,12 @@ class SettingsPanel(wx.Panel):
             self.bearerkey.Enable(False)
             self.airtableurl.Enable(False)
             self.airtableweb.Enable(False)
-            self.ping_batchsize.Enable(False)
 
     def _dict_to_fields(self, d: dict):
-        self.staffid.SetValue(d.get("staff_id", '000000'))
-        self.camera_refresh.SetValue(str(d.get("camera_refresh", 5000)))
+        self.staffid.SetValue(d.get("staff_id", '900xxxxx'))
         self.ping_timeout.SetValue(str(d.get("ping_timeout", 1000)))
+        self.ping_batchsize.SetValue(str(d.get("ping_batch_size", 100)))
+        self.camera_refresh.SetValue(str(d.get("camera_refresh", 5000)))
         self.main_browser.SetPath(d["main_browser"])
         self.alt_browser.SetPath(d["alt_browser"])
         self.dameware.SetPath(d["dameware"])
@@ -1443,10 +1455,9 @@ class SettingsPanel(wx.Panel):
         self.bearerkey.SetValue(d["bearer_key"])
         self.airtableurl.SetValue(d["airtable_url"])
         self.airtableweb.SetValue(d["airtable_web"])
-        self.ping_batchsize.SetValue(str(d.get("ping_batch_size", 100)))
 
     def unlock_button_evt(self, _):
-        secure_fields = [self.bearerkey, self.airtableurl, self.airtableweb, self.ping_batchsize]
+        secure_fields = [self.bearerkey, self.airtableurl, self.airtableweb]
         for field in secure_fields:
             field.Enable(True)
         filename = str(RESOURCE_DIR) + "/audio/llamas.wav"
@@ -1926,10 +1937,10 @@ def on_about(_):
     about_info.SetName(APP_NAME)
     about_info.SetVersion(BUILD_VER)
     about_info.SetDescription(
-        """\n      A Really Self Evident Computer and Network Device Interface
-        \n        [ a consolidated front-end for the monitoring and control of remote        
-            Audio-Visual devices installed within the UWA campus network ]\n\n
-        Connections exist for the following applications:
+        """\n          A Really Self Evident Computer and Network Device Interface
+        \n       [ Consolidating front-end for the monitoring and control of remote        
+             Audio-Visual devices installed within the UWA campus network ]\n\n
+        Connections exist for the following applications:\n        
                 AirTable
                 Asana
                 WebSiS
