@@ -136,7 +136,7 @@ def build_icandi_json():
             print("Pages retrieved from Airtable; Offset = " + offset)
 
         else:
-            print(f'Failed to connect to Airtable ({json_request_status})')
+            print(f'Failed to connect to Airtable\n\n({json_request_status})')
             print(ERROR_CODES.get(str(json_request_status), 'Error code not found'))
             break
 
@@ -168,7 +168,7 @@ def build_icandi_json():
     else:
         print("Problems with Airtable prevented any updating")
         http_err_msg = ERROR_CODES.get(str(json_request_status), 'Check AirTable API codes')
-        fail_msg = f'Failed to connect to Airtable\n{json_request_status}: {http_err_msg}'
+        fail_msg = f'Failed to connect to Airtable\n\n{json_request_status}: {http_err_msg}'
 
     ac_utility.preferences(DATA_DIR, "update", "last_data_refresh", time.localtime())
     return has_new_data, fail_msg

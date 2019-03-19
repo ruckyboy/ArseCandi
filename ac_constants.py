@@ -74,6 +74,8 @@ From SourceForge
 #FF3300 darker orange - button background with white text - inverts on rollover, white with blue text
 """
 COLOUR_PANEL_BG = "#616161"  # "#4B4B4B"  # "#ECECEC"  "#B0BEC5"   #607D8B #B0BEC5 #339194
+COLOUR_TABLE_BG = "#757575"
+COLOUR_TABLE_HEADER_BG = "#424242"
 COLOUR_ODD_LISTROW = "#8F8F8F"  # "#F2F2F2"  # "#ECECEC" "#F5F5F5"
 COLOUR_EVEN_LISTROW = "#A4A4A4"  # "#E4E4E4"  # "#E0E1E3" "#EEEEEE"
 COLOUR_TEXT_LARGE = "#757575"  # "#838b8b"

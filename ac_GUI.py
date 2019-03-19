@@ -1207,12 +1207,12 @@ class SettingsPanel(wx.Panel):
             <li>Too short: False Timed Out messages</li><li>Too long: Ping may be slower to finish</li></ul></p>
             <p><b>Ping Batch Size:</b> 100 is modest (1 - 2000)<ul><li>Simultaneous ping connections</li></ul></p>
             <p><b>Camera Refresh:</b> 5000(ms) is modest<ul><li>How often the webcam image updates</li></ul></p>
+            <p><b>Advanced Settings:</b><ul><li>The AirTable settings should never need to be changed</li>
+            <li>Unless Peter tells you to change them</li></ul></p>
             <p><b>File Locations:</b><ul><li>Chrome is the preferred Main Browser</li>
             <li>IE or Edge for the Alternative Browser</li><li>Dameware's 64bit mini-remote (DWRCC.exe)</li>
             <li>VNC: Give preference to UltraVNC</li><li>Telnet: either from the Windows\WinSxS directory</li>
             <li>or use TelnetUltra in ArseCandi's bin folder</li></ul></p>
-            <p><b>Advanced Settings:</b><ul><li>The AirTable settings should never need to be changed</li>
-            <li>Unless Peter tells you to change them</li></ul></p>
             """)
 
         self.htmlwin.SetBackgroundColour(COLOUR_PANEL_BG)
@@ -1220,6 +1220,7 @@ class SettingsPanel(wx.Panel):
 
         """ General Settings """
 
+        mid_panel_sizer = wx.BoxSizer(wx.VERTICAL)
         general_settings_sbsizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "General Settings"), wx.HORIZONTAL)
         apply_text_template(general_settings_sbsizer.GetStaticBox())
         gen_settings_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -1276,69 +1277,10 @@ class SettingsPanel(wx.Panel):
         self.camera_refresh = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
         camsizer_v.Add(self.camera_refresh, 0, wx.ALL, 5)
         gen_settings_sizer.Add(camsizer_v, 0, wx.LEFT, 5)
-
-        """ Separation line """
-        self.sep_line1 = wx.StaticLine(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL)
-        gen_settings_sizer.Add(self.sep_line1, 0, wx.TOP | wx.BOTTOM | wx.EXPAND, 10)
-
-        """ File selectors """
-        self.main_browser_label = wx.StaticText(self, wx.ID_ANY, "Main Browser")
-        gen_settings_sizer.Add(self.main_browser_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 6)
-
-        self.main_browser = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString, "Select the main browser location",
-                                              "*.exe", wx.DefaultPosition, wx.DefaultSize,
-                                              wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_SMALL)
-        self.main_browser.SetInitialDirectory("C:")
-        self.main_browser.SetBackgroundColour(COLOUR_PANEL_BG)
-        gen_settings_sizer.Add(self.main_browser, 0, wx.ALL | wx.EXPAND, 5)
-
-        self.alt_browser_label = wx.StaticText(self, wx.ID_ANY, "Alternative Browser")
-        gen_settings_sizer.Add(self.alt_browser_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 6)
-
-        self.alt_browser = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString, "Select the alternative browser location",
-                                             "*.exe", wx.DefaultPosition, wx.DefaultSize,
-                                             wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_SMALL)
-        self.alt_browser.SetInitialDirectory("C:")
-        self.alt_browser.SetBackgroundColour(COLOUR_PANEL_BG)
-        gen_settings_sizer.Add(self.alt_browser, 0, wx.ALL | wx.EXPAND, 5)
-
-        self.dameware_label = wx.StaticText(self, wx.ID_ANY, "Dameware(v10)")
-        gen_settings_sizer.Add(self.dameware_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 6)
-
-        self.dameware = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString,
-                                          "Select the Dameware mini remote control location", "*.exe",
-                                          wx.DefaultPosition, wx.DefaultSize,
-                                          wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_SMALL)
-        self.dameware.SetInitialDirectory("C:")
-        gen_settings_sizer.Add(self.dameware, 0, wx.ALL | wx.EXPAND, 5)
-
-        self.shure_label = wx.StaticText(self, wx.ID_ANY, "Wireless Workbench 6")
-        gen_settings_sizer.Add(self.shure_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 6)
-
-        self.shure = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString,
-                                       "Select the Wireless Workbench 6 (64bit) location", "*.exe",
-                                       wx.DefaultPosition, wx.DefaultSize,
-                                       wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_SMALL)
-        self.shure.SetInitialDirectory("C:")
-        gen_settings_sizer.Add(self.shure, 0, wx.ALL | wx.EXPAND, 5)
-
-        self.vnc_label = wx.StaticText(self, wx.ID_ANY, "VNC")
-        gen_settings_sizer.Add(self.vnc_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 6)
-
-        self.vnc = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString, "Select the VNC program location", "*.exe",
-                                     wx.DefaultPosition, wx.DefaultSize,
-                                     wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_SMALL)
-        self.vnc.SetInitialDirectory("C:")
-        gen_settings_sizer.Add(self.vnc, 0, wx.ALL | wx.EXPAND, 5)
-
-        self.telnet_label = wx.StaticText(self, wx.ID_ANY, "Telnet")
-        gen_settings_sizer.Add(self.telnet_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 6)
-
-        self.telnet = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString, "Select the TelnetUltra program location",
-                                        "*.exe", wx.DefaultPosition, wx.DefaultSize,
-                                        wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_SMALL)
-        self.telnet.SetInitialDirectory("C:")
-        gen_settings_sizer.Add(self.telnet, 0, wx.ALL | wx.EXPAND, 5)
+        #
+        # """ Separation line """
+        # self.sep_line1 = wx.StaticLine(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL)
+        # gen_settings_sizer.Add(self.sep_line1, 0, wx.TOP | wx.BOTTOM | wx.EXPAND, 10)
 
         """ Advanced Panel """
         rhs_panel_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -1366,17 +1308,80 @@ class SettingsPanel(wx.Panel):
 
         self.airtableweb = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
         adv_settings_sizer.Add(self.airtableweb, 0, wx.ALL | wx.EXPAND, 5)
+        #
+        # """ Separation line """
+        # self.sep_line2 = wx.StaticLine(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL)
+        # adv_settings_sizer.Add(self.sep_line2, 0, wx.TOP | wx.BOTTOM | wx.EXPAND, 10)
 
-        """ Separation line """
-        self.sep_line2 = wx.StaticLine(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL)
-        adv_settings_sizer.Add(self.sep_line2, 0, wx.TOP | wx.BOTTOM | wx.EXPAND, 10)
+        """ Button Box spacer """  # Needed to push buttons down to the bottom of the sizer
+        adv_settings_sizer.Add((0, 0), 1, wx.EXPAND, 5)
 
         self.unlock_button = wx.Button(self, wx.ID_ANY, "Unlock", style=wx.NO_BORDER)
         apply_button_template(self.unlock_button)
         adv_settings_sizer.Add(self.unlock_button, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
 
-        """ Button Box spacer """  # Needed to push buttons down to the bottom of the sizer
-        adv_settings_sizer.Add((0, 0), 1, wx.EXPAND, 5)
+        """ File selectors """
+        program_locations_sbsizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Program Locations"), wx.HORIZONTAL)
+        apply_text_template(program_locations_sbsizer.GetStaticBox())
+        program_locations_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.main_browser_label = wx.StaticText(self, wx.ID_ANY, "Main Browser")
+        program_locations_sizer.Add(self.main_browser_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 6)
+
+        self.main_browser = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString, "Select the main browser location",
+                                              "*.exe", wx.DefaultPosition, wx.DefaultSize,
+                                              wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_SMALL)
+        self.main_browser.SetInitialDirectory("C:")
+        self.main_browser.SetBackgroundColour(COLOUR_PANEL_BG)
+        program_locations_sizer.Add(self.main_browser, 0, wx.ALL | wx.EXPAND, 5)
+
+        self.alt_browser_label = wx.StaticText(self, wx.ID_ANY, "Alternative Browser")
+        program_locations_sizer.Add(self.alt_browser_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 6)
+
+        self.alt_browser = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString, "Select the alternative browser location",
+                                             "*.exe", wx.DefaultPosition, wx.DefaultSize,
+                                             wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_SMALL)
+        self.alt_browser.SetInitialDirectory("C:")
+        self.alt_browser.SetBackgroundColour(COLOUR_PANEL_BG)
+        program_locations_sizer.Add(self.alt_browser, 0, wx.ALL | wx.EXPAND, 5)
+
+        self.dameware_label = wx.StaticText(self, wx.ID_ANY, "Dameware(v10)")
+        program_locations_sizer.Add(self.dameware_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 6)
+
+        self.dameware = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString,
+                                          "Select the Dameware mini remote control location", "*.exe",
+                                          wx.DefaultPosition, wx.DefaultSize,
+                                          wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_SMALL)
+        self.dameware.SetInitialDirectory("C:")
+        program_locations_sizer.Add(self.dameware, 0, wx.ALL | wx.EXPAND, 5)
+
+        self.shure_label = wx.StaticText(self, wx.ID_ANY, "Wireless Workbench 6")
+        program_locations_sizer.Add(self.shure_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 6)
+
+        self.shure = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString,
+                                       "Select the Wireless Workbench 6 (64bit) location", "*.exe",
+                                       wx.DefaultPosition, wx.DefaultSize,
+                                       wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_SMALL)
+        self.shure.SetInitialDirectory("C:")
+        program_locations_sizer.Add(self.shure, 0, wx.ALL | wx.EXPAND, 5)
+
+        self.vnc_label = wx.StaticText(self, wx.ID_ANY, "VNC")
+        program_locations_sizer.Add(self.vnc_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 6)
+
+        self.vnc = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString, "Select the VNC program location", "*.exe",
+                                     wx.DefaultPosition, wx.DefaultSize,
+                                     wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_SMALL)
+        self.vnc.SetInitialDirectory("C:")
+        program_locations_sizer.Add(self.vnc, 0, wx.ALL | wx.EXPAND, 5)
+
+        self.telnet_label = wx.StaticText(self, wx.ID_ANY, "Telnet")
+        program_locations_sizer.Add(self.telnet_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 6)
+
+        self.telnet = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString, "Select the TelnetUltra program location",
+                                        "*.exe", wx.DefaultPosition, wx.DefaultSize,
+                                        wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_SMALL)
+        self.telnet.SetInitialDirectory("C:")
+        program_locations_sizer.Add(self.telnet, 0, wx.ALL | wx.EXPAND, 5)
 
         """ Page Buttons """
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -1407,14 +1412,19 @@ class SettingsPanel(wx.Panel):
 
         general_settings_sbsizer.Add(gen_settings_sizer, 1, wx.ALL | wx.EXPAND, 5)
         advanced_settings_sbsizer.Add(adv_settings_sizer, 1, wx.ALL | wx.EXPAND, 5)
-        rhs_panel_sizer.Add(advanced_settings_sbsizer, 1, wx.ALL | wx.EXPAND, 0)
+        program_locations_sbsizer.Add(program_locations_sizer, 1, wx.ALL | wx.EXPAND, 5)
+
+        mid_panel_sizer.Add(general_settings_sbsizer,1, wx.ALL | wx.EXPAND, 0)
+        mid_panel_sizer.Add(advanced_settings_sbsizer,1, wx.ALL | wx.EXPAND, 0)
+        rhs_panel_sizer.Add(program_locations_sbsizer, 1, wx.ALL | wx.EXPAND, 0)
         rhs_panel_sizer.Add(button_sizer, 0, wx.TOP | wx.LEFT | wx.ALIGN_RIGHT, 5)
 
         panel_sizer.Add(info_sizer, 1, wx.ALL | wx.EXPAND, 5)
-        panel_sizer.Add(general_settings_sbsizer, 2, wx.ALL | wx.EXPAND, 5)
-        panel_sizer.Add(rhs_panel_sizer, 1, wx.ALL | wx.EXPAND, 5)
+        panel_sizer.Add(mid_panel_sizer, 1, wx.ALL | wx.EXPAND, 5)
+        panel_sizer.Add(rhs_panel_sizer, 2, wx.ALL | wx.EXPAND, 5)
 
         self.SetSizer(panel_sizer)
+        self.Layout()
 
         """
         ### Setup event binding connections
@@ -1532,7 +1542,9 @@ class StatisticsReport(wx.Panel):
         # we want to be able to re-ping selected devices
         # we want stats on numbers / success
 
-        # self.SetMinSize(wx.Size(1000, 768))
+        self.SetForegroundColour(wx.Colour(COLOUR_BUTTON_TEXT_LIGHT))
+        self.SetBackgroundColour(wx.Colour(COLOUR_PANEL_BG))
+        self.SetMinSize(wx.Size(1000, 768))
 
         panel_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -1564,36 +1576,92 @@ class StatisticsReport(wx.Panel):
 
         info_sizer.Add(self.info_text, 0, wx.ALIGN_CENTER | wx.ALL, 10)
 
-        panel_sizer.Add(info_sizer, 1, wx.ALIGN_CENTER, 5)
+        panel_sizer.Add(info_sizer, 0, wx.ALIGN_CENTER, 5)
 
         stats_box_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Statistical Summary"), wx.VERTICAL)
+        apply_text_template(stats_box_sizer.GetStaticBox())
 
-        stats_sizer = wx.FlexGridSizer(5, 4, 10, 15)
-
-        ctf_title = wx.StaticText(self, label="CTF")
-        non_ctf_title = wx.StaticText(self, label="Non-CTF")
-        total_title = wx.StaticText(self, label="Total")
-        stats_sizer.AddMany([wx.StaticText(self), ctf_title, non_ctf_title, total_title])
+        stats_table_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         stats = arsecandi.get_venue_stats(venues_full)
 
-        stats_sizer.AddMany(
-            [wx.StaticText(self, label='Venue Type'), wx.StaticText(self, label=f'{stats["ctf_y"]}'),
-             wx.StaticText(self, label=f'{stats["ctf_n"]}'),
-             wx.StaticText(self, label=f'{stats["ctf_tot"]}'),
-             wx.StaticText(self, label='Venue PCs'), wx.StaticText(self, label=f'{stats["ctf_y_pc"]}'),
-             wx.StaticText(self, label=f'{stats["ctf_n_pc"]}'),
-             wx.StaticText(self, label=f'{stats["ctf_tot_pc"]}'),
-             wx.StaticText(self, label='Venue Cameras'), wx.StaticText(self, label=f'{stats["ctf_y_cam"]}'),
-             wx.StaticText(self, label=f'{stats["ctf_n_cam"]}'),
-             wx.StaticText(self, label=f'{stats["ctf_tot_cam"]}'),
-             wx.StaticText(self, label='Venue Echo Devices'), wx.StaticText(self, label=f'{stats["ctf_y_echo"]}'),
-             wx.StaticText(self, label=f'{stats["ctf_n_echo"]}'),
-             wx.StaticText(self, label=f'{stats["ctf_tot_echo"]}')
-             ])
+        self.htmlwin = wx.html.HtmlWindow(self, wx.ID_ANY, style=wx.NO_BORDER)
 
-        stats_box_sizer.Add(stats_sizer, 1, wx.ALIGN_CENTER | wx.ALL | wx.EXPAND, 15)
-        panel_sizer.Add(stats_box_sizer, 1, wx.ALIGN_CENTER | wx.ALL | wx.EXPAND, 5)
+        self.htmlwin.AppendToPage(f"""
+            <font color='white'>
+            <table border=0 cellpadding=10 bgcolor={COLOUR_TABLE_BG}>
+                <thead>
+                    <tr bgcolor={COLOUR_TABLE_HEADER_BG}>
+                        <th align=right width=123>Venue</th>
+                        <th width=100> CTF </th>
+                        <th width=100>Non-CTF</th>
+                        <th width=100>Totals</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th scope='row' align='right' bgcolor={COLOUR_TABLE_HEADER_BG}>Type</th>
+                        <td align=center>{stats["ctf_y"]}</td>
+                        <td align=center>{stats["ctf_n"]}</td>
+                        <td align=center>{stats["ctf_tot"]}</td>
+                    </tr>
+                    <tr>
+                        <th scope='row' align='right' bgcolor={COLOUR_TABLE_HEADER_BG}>Lecturn PC</th>
+                        <td align=center>{stats["ctf_y_pc"]}</td>
+                        <td align=center>{stats["ctf_n_pc"]}</td>
+                        <td align=center>{stats["ctf_tot_pc"]}</td>
+                    </tr>
+                    <tr>
+                        <th scope='row' align='right' bgcolor={COLOUR_TABLE_HEADER_BG}>Web Camera</th>
+                        <td align=center>{stats["ctf_y_cam"]}</td>
+                        <td align=center>{stats["ctf_n_cam"]}</td>
+                        <td align=center>{stats["ctf_tot_cam"]}</td>
+                    </tr>
+                    <tr>
+                        <th scope='row' align='right' bgcolor={COLOUR_TABLE_HEADER_BG}>Echo Device</th>
+                        <td align=center>{stats["ctf_y_echo"]}</td>
+                        <td align=center>{stats["ctf_n_echo"]}</td>
+                        <td align=center>{stats["ctf_tot_echo"]}</td>
+                    </tr>
+                </tbody>
+            </table>
+            """)
+
+        self.htmlwin.AppendToPage(f"""
+            <font color='white'>
+            <p></p>
+            <table border=0 cellpadding=10 bgcolor={COLOUR_TABLE_BG}>
+                <thead>
+                    <tr bgcolor={COLOUR_TABLE_HEADER_BG}>
+                        <th colspan=6>Venue Web Cameras</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr bgcolor={COLOUR_TABLE_HEADER_BG}>
+                        <th width=70>VB10</th>
+                        <th width=70>VB41</th>
+                        <th width=70>VB50</th>
+                        <th width=70>VB60</th>
+                        <th width=70>Sony</th>
+                        <th width=70>Total</th>
+                    </tr>
+                    <tr>
+                        <td align=center>{stats["camtype_vb10"]}</td>
+                        <td align=center>{stats["camtype_vb41"]}</td>
+                        <td align=center>{stats["camtype_vb50"]}</td>
+                        <td align=center>{stats["camtype_vb60"]}</td>
+                        <td align=center>{stats["camtype_sony"]}</td>
+                        <td align=center>{stats["camtype_tot"]}</td>
+                    </tr>
+                </tbody>
+            </table>
+            """)
+
+        self.htmlwin.SetBackgroundColour(COLOUR_PANEL_BG)
+        stats_table_sizer.Add(self.htmlwin, 1, wx.EXPAND, 10)
+
+        stats_box_sizer.Add(stats_table_sizer, 1, wx.ALIGN_CENTER | wx.ALL | wx.EXPAND, 5)
+        panel_sizer.Add(stats_box_sizer, 2, wx.ALIGN_CENTER | wx.ALL | wx.EXPAND, 5)
 
         self.SetSizer(panel_sizer)
         self.Layout()
@@ -1619,43 +1687,6 @@ class WebCamFrame(wx.Frame):
         self.sizer.Add(cam_viewer, 1, wx.EXPAND)
 
         self.SetSizer(self.sizer)
-
-
-###########################################################################
-# Class AirtableConnectDialogue
-###########################################################################
-
-# Todo not using - might remove ?
-class AirtableConnectDialogue(wx.Dialog):
-
-    def __init__(self, parent):
-        wx.Dialog.__init__(self, parent, id=wx.ID_ANY, title="Welcome", pos=wx.DefaultPosition, size=wx.DefaultSize,
-                           style=wx.DEFAULT_DIALOG_STYLE)
-
-        self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
-
-        bSizer1 = wx.BoxSizer(wx.VERTICAL)
-
-        bSizer1.SetMinSize(wx.Size(100, 100))
-        self.title = wx.StaticText(self, wx.ID_ANY, "ArseCandi (2019)", wx.DefaultPosition, wx.DefaultSize,
-                                   wx.ALIGN_CENTRE)
-        self.title.Wrap(-1)
-        self.title.SetFont(wx.Font(14, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, "Segoe UI"))
-        self.title.SetForegroundColour(wx.Colour(255, 0, 128))
-
-        bSizer1.Add(self.title, 0, wx.ALL | wx.EXPAND, 10)
-
-        self.splash_hint = wx.StaticText(self, wx.ID_ANY, "Loading data from Airtable", wx.DefaultPosition,
-                                         wx.DefaultSize, 0)
-        self.splash_hint.Wrap(-1)
-        bSizer1.Add(self.splash_hint, 0, wx.ALL, 5)
-
-        self.SetSizer(bSizer1)
-        # self.Layout()
-        bSizer1.Fit(self)
-
-        self.Centre(wx.BOTH)
-        self.Layout()
 
 
 ###########################################################################
@@ -1998,6 +2029,7 @@ if __name__ == '__main__':
     if fail_msg:
         msg_warn(None, fail_msg)
         if not venues_full:
+            msg_warn(None, "No local or remote data available\n\nNothing to load => Closing ArseCandi")
             print('No data: shutting down ArseCandi')
             quit()
 
