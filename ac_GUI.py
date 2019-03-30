@@ -1,6 +1,5 @@
 import time
 import subprocess
-from operator import itemgetter
 
 import wx
 import wx.html
@@ -20,7 +19,7 @@ import ac_utility
 import ac_ping
 
 """  
-Naming Abreviations:
+Naming Abbreviations:
 
 btn:    Button
 rbtn:   RadioButton
@@ -138,8 +137,8 @@ class VenuesPanel(wx.Panel):
         self.venues_count_label.SetForegroundColour(COLOUR_BUTTON_TEXT_LIGHT)
 
         venues_section_sizer.Add(self.venues_count_label, 0, wx.ALL | wx.EXPAND, 5)
-        venues_section_static_box.Add(venues_section_sizer, 1, wx.EXPAND, 5)
-        panel_sizer.Add(venues_section_static_box, 5, wx.ALL | wx.EXPAND, 10)
+        venues_section_static_box.Add(venues_section_sizer, 2, wx.EXPAND, 5)
+        panel_sizer.Add(venues_section_static_box, 2, wx.ALL | wx.EXPAND, 10)
 
         """ ### Venue Devices and Details Section """
         venue_all_info_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -171,7 +170,7 @@ class VenuesPanel(wx.Panel):
         # self.device_olv.rowFormatter(rowFormatter)  # TODO consider formatting cell dependant on ping result
         self.device_olv.SetMinSize(wx.Size(352, 325))
 
-        device_list_sizer.Add(self.device_olv, 1, wx.ALL | wx.EXPAND, 0)
+        device_list_sizer.Add(self.device_olv, 2, wx.ALL | wx.EXPAND, 0)
 
         """ Device List Filtering """
         devicelist_filter_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -192,7 +191,7 @@ class VenuesPanel(wx.Panel):
 
         device_list_sizer.Add(devicelist_filter_sizer, 0, wx.EXPAND, 5)
 
-        device_box_sizer.Add(device_list_sizer, 2, wx.ALL | wx.EXPAND, 5)
+        device_box_sizer.Add(device_list_sizer, 1, wx.ALL | wx.EXPAND, 5)
 
         self.device_button_line = wx.StaticLine(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_VERTICAL)
         device_box_sizer.Add(self.device_button_line, 0, wx.BOTTOM | wx.TOP | wx.EXPAND, 5)
@@ -1414,8 +1413,8 @@ class SettingsPanel(wx.Panel):
         advanced_settings_sbsizer.Add(adv_settings_sizer, 1, wx.ALL | wx.EXPAND, 5)
         program_locations_sbsizer.Add(program_locations_sizer, 1, wx.ALL | wx.EXPAND, 5)
 
-        mid_panel_sizer.Add(general_settings_sbsizer,1, wx.ALL | wx.EXPAND, 0)
-        mid_panel_sizer.Add(advanced_settings_sbsizer,1, wx.ALL | wx.EXPAND, 0)
+        mid_panel_sizer.Add(general_settings_sbsizer, 1, wx.ALL | wx.EXPAND, 0)
+        mid_panel_sizer.Add(advanced_settings_sbsizer, 1, wx.ALL | wx.EXPAND, 0)
         rhs_panel_sizer.Add(program_locations_sbsizer, 1, wx.ALL | wx.EXPAND, 0)
         rhs_panel_sizer.Add(button_sizer, 0, wx.TOP | wx.LEFT | wx.ALIGN_RIGHT, 5)
 
@@ -1526,7 +1525,7 @@ class SettingsPanel(wx.Panel):
 
 
 ###########################################################################
-# Class Device Online Report
+# Class Statistics Report
 ###########################################################################
 
 
@@ -1554,7 +1553,7 @@ class StatisticsReport(wx.Panel):
                                       wx.ALIGN_CENTRE)
         self.branding.Wrap(-1)
         self.branding.SetFont(
-            wx.Font(20, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, "Segoe UI Semibold"))
+            wx.Font(22, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, "Segoe UI Semibold"))
         self.branding.SetForegroundColour(wx.Colour(255, 128, 0))
         self.branding.SetBackgroundColour(wx.Colour(128, 0, 0))
         self.branding.SetMinSize(wx.Size(200, 50))
@@ -1566,12 +1565,12 @@ class StatisticsReport(wx.Panel):
         self.version_text.Wrap(-1)
         info_sizer.Add(self.version_text, 0, wx.ALIGN_CENTER | wx.ALL, 5)
 
-        self.info_text = wx.StaticText(self, wx.ID_ANY,
-                                       "what's happening goes here\nto tell user things like airtable loading status",
-                                       wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTRE | wx.DOUBLE_BORDER)
+        self.info_text = wx.StaticText(self, wx.ID_ANY, f"AirTable data last changed:\n"
+                                       f"{ac_utility.get_file_timestamp(DATA_DIR / 'icandi.json')}",
+                                       wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTRE)
         self.info_text.Wrap(-1)
         self.info_text.SetFont(
-            wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, wx.EmptyString))
+            wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, wx.EmptyString))
         self.info_text.SetMinSize(wx.Size(400, -1))
 
         info_sizer.Add(self.info_text, 0, wx.ALIGN_CENTER | wx.ALL, 10)
@@ -1592,7 +1591,7 @@ class StatisticsReport(wx.Panel):
             <table border=0 cellpadding=10 bgcolor={COLOUR_TABLE_BG}>
                 <thead>
                     <tr bgcolor={COLOUR_TABLE_HEADER_BG}>
-                        <th align=right width=123>Venue</th>
+                        <th align=right width=123></th>
                         <th width=100> CTF </th>
                         <th width=100>Non-CTF</th>
                         <th width=100>Totals</th>
@@ -1600,7 +1599,7 @@ class StatisticsReport(wx.Panel):
                 </thead>
                 <tbody>
                     <tr>
-                        <th scope='row' align='right' bgcolor={COLOUR_TABLE_HEADER_BG}>Type</th>
+                        <th scope='row' align='right' bgcolor={COLOUR_TABLE_HEADER_BG}>Venue Type</th>
                         <td align=center>{stats["ctf_y"]}</td>
                         <td align=center>{stats["ctf_n"]}</td>
                         <td align=center>{stats["ctf_tot"]}</td>
@@ -1657,11 +1656,33 @@ class StatisticsReport(wx.Panel):
             </table>
             """)
 
+        self.htmlwin.AppendToPage(f"""
+            <font color='white'>
+            <p></p>
+            <table border=0 cellpadding=10 bgcolor={COLOUR_TABLE_BG}>
+                <thead>
+                    <tr bgcolor={COLOUR_TABLE_HEADER_BG}>
+                        <th colspan=2>Venue Device IP Allocations</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr bgcolor={COLOUR_TABLE_HEADER_BG}>
+                        <th width=214>Allocated IP Addresses</th>
+                        <th width=214>Active IP Addresses</th>
+                    </tr>
+                    <tr>
+                        <td align=center>{stats["ip_alloc_tot"]}</td>
+                        <td align=center>{stats["ip_active_alloc_tot"]}</td>
+                    </tr>
+                </tbody>
+            </table>
+            """)
+
         self.htmlwin.SetBackgroundColour(COLOUR_PANEL_BG)
         stats_table_sizer.Add(self.htmlwin, 1, wx.EXPAND, 10)
 
         stats_box_sizer.Add(stats_table_sizer, 1, wx.ALIGN_CENTER | wx.ALL | wx.EXPAND, 5)
-        panel_sizer.Add(stats_box_sizer, 2, wx.ALIGN_CENTER | wx.ALL | wx.EXPAND, 5)
+        panel_sizer.Add(stats_box_sizer, 2, wx.ALIGN_CENTER | wx.ALL | wx.EXPAND, 10)
 
         self.SetSizer(panel_sizer)
         self.Layout()
@@ -1742,8 +1763,7 @@ class MainFrame(wx.Frame):
         self.settings_item = wx.MenuItem(self.file, wx.ID_ANY, "&Settings", "View or Change ArseCandi options",
                                          wx.ITEM_NORMAL)
         self.view.Append(self.settings_item)
-        self.report_item = wx.MenuItem(self.file, wx.ID_ANY, "&Online Report", "Check Venue device connections",
-                                       wx.ITEM_NORMAL)
+        self.report_item = wx.MenuItem(self.file, wx.ID_ANY, "Stats &Report", "A few statistics", wx.ITEM_NORMAL)
         self.view.Append(self.report_item)
         self.view.AppendSeparator()  # add a separator to Menu
         self.view.Append(wx.ID_ABOUT, "About")
