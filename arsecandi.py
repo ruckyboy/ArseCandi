@@ -36,6 +36,12 @@ def get_venue_list(location: Path, force_build=False):
 
 
 def get_venue_stats(venues_list):
+    """
+    A simple helper function to construct a dictionary of stats from the main venues list
+
+    :param venues_list: list of venue dictionaries
+    :return: dict
+    """
     stats_dict = {}
     ctf = Counter(item['ctf'] for item in venues_list)
     stats_dict['ctf_y'] = ctf['Yes']
@@ -57,7 +63,7 @@ def get_venue_stats(venues_list):
     stats_dict['ctf_n_cam'] = cam['No']
     stats_dict['ctf_tot_cam'] = sum(cam.values())
 
-    camtype = Counter(item['webcamtype'] for item in venues_list)
+    camtype = Counter(item['webcamtype'] for item in venues_list if item['webcam'])
     stats_dict['camtype_vb10'] = camtype['VB10']
     stats_dict['camtype_vb41'] = camtype['VB41']
     stats_dict['camtype_vb50'] = camtype['VB50']
@@ -65,24 +71,46 @@ def get_venue_stats(venues_list):
     stats_dict['camtype_sony'] = camtype['SonyCam']
     stats_dict['camtype_tot'] = sum(camtype.values())
 
+    alloc_tot = 0
+    active_alloc_tot = 0
+    for item in venues_list:
+        for ip in item['networkdevice']:
+            if '[' not in ip[0]:    # removes PC, Echo and cameras from the ip address list
+                alloc_tot += 1
+                if '*' not in ip[0]:    # further removes non-active ip addresses
+                    active_alloc_tot += 1
+
+    stats_dict['ip_alloc_tot'] = alloc_tot
+    stats_dict['ip_active_alloc_tot'] = active_alloc_tot
+
     return stats_dict
 
 
 if __name__ == '__main__':
-    venuelist, is_new_data, msg = get_venue_list(DATA_DIR)
-    print()
+    from pprint import pprint
 
-    # # Test print
-    # itemcount = 0
-    # for i in venuelist:
-    #     itemcount += 1
-    #     for k, v in i.items():
-    #         if k == "notes":
-    #             v = repr(v)
-    #             # this handles the \r print output problem in the notes field, just for this test print only
-    #         print(k + " = " + str(v))
-    #     print("---------------------------" + str(itemcount))
-    # print()
+    def test_get_venue_list():
+        venuelist, is_new_data, msg = get_venue_list(DATA_DIR)
+        print()
 
-    print(f'Database updated by get_venue_list: {is_new_data}')
-    print(f'{len(venuelist)} records found\nPassed Message: {msg}')
+        # Print out entire list of venue dictionaries
+        itemcount = 0
+        for i in venuelist:
+            itemcount += 1
+            for k, v in i.items():
+                if k == "notes":
+                    v = repr(v)
+                    # this handles the \r print output problem in the notes field, just for this test print only
+                print(k + " = " + str(v))
+            print("---------------------------" + str(itemcount))
+        print()
+
+        print(f'Database updated by get_venue_list: {is_new_data}')
+        print(f'{len(venuelist)} records found\nPassed Message: {msg}')
+
+    def test_get_stats_dict():
+        venuelist, is_new_data, msg = get_venue_list(DATA_DIR)
+        stats_dict = get_venue_stats(venuelist)
+        pprint(stats_dict)
+
+    test_get_stats_dict()
