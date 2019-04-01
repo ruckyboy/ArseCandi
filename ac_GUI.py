@@ -125,7 +125,7 @@ class VenuesPanel(wx.Panel):
         self.venue_olv.evenRowsBackColor = wx.Colour(COLOUR_EVEN_LISTROW)
         self.venue_olv.oddRowsBackColor = wx.Colour(COLOUR_ODD_LISTROW)
         self.venue_olv.SetEmptyListMsg("No matching venues")
-        self.venue_olv.SetEmptyListMsgColors(wx.WHITE, wx.Colour(COLOUR_EVEN_LISTROW))
+        # self.venue_olv.SetEmptyListMsgColors(wx.WHITE, wx.Colour(COLOUR_EVEN_LISTROW))
 
         # self.venue_olv.rowFormatter = self.rowFormatter
         venues_section_sizer.Add(self.venue_olv, 1, wx.ALL | wx.EXPAND, 5)
@@ -165,7 +165,7 @@ class VenuesPanel(wx.Panel):
         self.device_olv.evenRowsBackColor = wx.Colour(COLOUR_EVEN_LISTROW)
         self.device_olv.oddRowsBackColor = wx.Colour(COLOUR_ODD_LISTROW)
         self.device_olv.SetEmptyListMsg("No devices")
-        self.device_olv.SetEmptyListMsgColors(wx.WHITE, wx.Colour(COLOUR_EVEN_LISTROW))
+        # self.device_olv.SetEmptyListMsgColors(wx.WHITE, wx.Colour(COLOUR_EVEN_LISTROW))
 
         # self.device_olv.rowFormatter(rowFormatter)  # TODO consider formatting cell dependant on ping result
         self.device_olv.SetMinSize(wx.Size(352, 325))
@@ -565,7 +565,7 @@ class VenuesPanel(wx.Panel):
         progstring = prefs_dict["telnet"]
         # TODO reinstate below for uwa use
         ipstring = self.device_olv.GetSelectedObject()[1]
-        ipstring = "35.160.169.47"  # Testing only
+        # ipstring = "35.160.169.47"  # Testing only
         try:
             # subprocess.Popen(["start", "cmd.exe /k", "ping.exe", "www.google.com"], shell=True)
             # For Telnet use Popen with argument shell=True
@@ -683,8 +683,8 @@ class VenuesPanel(wx.Panel):
         SonyCam: Firefox; Suffix=/en/JViewer.html; Size=860x590
         """
         # TODO Placeholders until live
-        camera_type = "VB60"
-        camera_ip = "136.142.166.244"
+        # camera_type = "VB60"
+        # camera_ip = "136.142.166.244"
 
         if camera_type == "SonyCam":
             viewer_url = f"http://{camera_ip}/en/JViewer.html"
