@@ -421,8 +421,13 @@ class VenuesPanel(wx.Panel):
         """ Image Viewer (buildings) """
         image_viewer_default = \
             "https://static.weboffice.uwa.edu.au/visualid/core-rebrand/img/uwacrest/uwacrest-white.png"
-        self.image_viewer = wx.html2.WebView.New(dss_gsb, wx.ID_ANY, image_viewer_default, wx.DefaultPosition,
-                                                 wx.Size(286, 187))
+        # self.image_viewer = wx.html2.WebView.New(dss_gsb, wx.ID_ANY, image_viewer_default, wx.DefaultPosition,
+        #                                          wx.Size(286, 187))
+
+        self.image_viewer = wx.html.HtmlWindow(dss_gsb, wx.ID_ANY, wx.DefaultPosition, wx.Size(286, 187),
+                                             wx.html.HW_SCROLLBAR_NEVER)
+        self.image_viewer.SetPage(image_viewer_default)
+
         self.image_viewer.SetMinSize((286, 187))
         self.image_viewer.SetMaxSize((286, 187))
         self.image_viewer.Enable(False)
@@ -565,7 +570,7 @@ class VenuesPanel(wx.Panel):
         progstring = prefs_dict["telnet"]
         # TODO reinstate below for uwa use
         ipstring = self.device_olv.GetSelectedObject()[1]
-        # ipstring = "35.160.169.47"  # Testing only
+        ipstring = "35.160.169.47"  # Testing only
         try:
             # subprocess.Popen(["start", "cmd.exe /k", "ping.exe", "www.google.com"], shell=True)
             # For Telnet use Popen with argument shell=True
@@ -675,13 +680,12 @@ class VenuesPanel(wx.Panel):
         win_size = (640, 480)
         """
         Camera controls
-        VB10: Firefox; Suffix=/sample/LvAppl/lvappl.htm; Size=475x415
         VB41: Chrome; Suffix=/viewer/live/en/live.html Size=1100x743
         VB50: Firefox; Suffix=/sample/lvahuge.html; Size=833x780
         VB60: Chrome; Suffix=/viewer/live/en/live.html; Size=810x745
         SonyCam: Firefox; Suffix=/en/JViewer.html; Size=860x590
         """
-        # TODO Placeholders until live = Much work to do on browsers
+        # TODO Placeholders until live
         # camera_type = "VB60"
         # camera_ip = "136.142.166.244"
 
@@ -697,10 +701,6 @@ class VenuesPanel(wx.Panel):
             viewer_url = f"http://{camera_ip}/viewer/live/en/live.html"
             win_size = (810, 745)
             ext_browser = "Chrome"
-        elif camera_type == "VB10":
-            viewer_url = f"http://{camera_ip}/sample/LvAppl/lvappl.htm"
-            win_size = (475, 415)
-            ext_browser = "Firefox"
         elif camera_type == "VB50":
             viewer_url = f"http://{camera_ip}/sample/lvahuge.html"
             win_size = (833, 780)
@@ -710,22 +710,22 @@ class VenuesPanel(wx.Panel):
             win_size = (1024, 768)
             ext_browser = "Chrome"
 
-        if not right_click:
-            webcam_window = WebCamFrame(title=f"{camera_type} - {camera_ip}", size=win_size, address=viewer_url)
-            webcam_window.Show()
+        # if not right_click:
+        #     webcam_window = WebCamFrame(title=f"{camera_type} - {camera_ip}", size=win_size, address=viewer_url)
+        #     webcam_window.Show()
+        # else:
+        if ext_browser == "Chrome":
+            progstring = prefs_dict["main_browser"]
+            browser_switch = "--new-window"
         else:
-            if ext_browser == "Chrome":
-                progstring = prefs_dict["main_browser"]
-                browser_switch = "--new-window"
-            else:
-                progstring = prefs_dict["alt_browser"]
-                browser_switch = "-new-window"
-            try:
-                subprocess.Popen(
-                    [progstring, browser_switch, viewer_url])  # opens browser with new window at address passed
-            except OSError as e:
-                print("Browser failed to run:", e)
-                msg_warn(self, f"Browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
+            progstring = prefs_dict["alt_browser"]
+            browser_switch = "-new-window"
+        try:
+            subprocess.Popen(
+                [progstring, browser_switch, viewer_url])  # opens browser with new window at address passed
+        except OSError as e:
+            print("Browser failed to run:", e)
+            msg_warn(self, f"Browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
         event.Skip()
 
     def btn_airtable_evt(self, event):
@@ -1042,7 +1042,7 @@ class VenuesPanel(wx.Panel):
             # TODO next lines are placeholder until proper url is programmed
             # cam_url = "https://static.weboffice.uwa.edu.au/visualid/core-rebrand/img/uwacrest/uwacrest-white.png"
             # cam_url = "https://mrapps.mainroads.wa.gov.au/TrafficImages/CAM00199.jpg"
-            # cam_url = "http://136.142.166.244/-wvhttp-01-/GetOneShot?"  # it's a VB60
+            cam_url = "http://136.142.166.244/-wvhttp-01-/GetOneShot?"  # it's a VB60
             cam_html = "<!DOCTYPE HTML><html><head></head>" \
                        "<body style='margin: 0px; overflow: hidden;'><img alt='Camera Offline'" \
                 f" {image_size_str} src='{cam_url}'/></body></html>"
@@ -1085,19 +1085,24 @@ class VenuesPanel(wx.Panel):
             f"http://sisfm-enquiry.fm.uwa.edu.au/SISfm-Enquiry/sisdata/photos/thumb/CR/{websis_id[:6]}_1.jpg"
         if websis_building_image:
             imageview_string = \
-                "<!doctype html><html><head><style type='text/css'> img{" \
-                "display: block; " \
-                "margin-left: auto; margin-right: auto; " \
-                "width: 256px; max-height: 167px;" \
-                "} </style></head>" \
-                "<body style='margin: 8px; overflow: hidden;'><div>" \
-                    f"<img src='{websis_building_image}' onerror='this.onerror=\"\"; src=\"{default_image}\";'/>" \
+                "<!doctype html><html><head></head>" \
+                "<body>" \
+                f"<div><img src='{websis_building_image}' height='100%' width='100%'/>" \
                 "</div></body></html>"
+            # imageview_string = \
+            #     "<!doctype html><html><head><style type='text/css'> img{" \
+            #     "display: block; " \
+            #     "margin-left: auto; margin-right: auto; " \
+            #     "width: 256px; max-height: 167px;" \
+            #     "} </style></head>" \
+            #     "<body style='margin: 8px; overflow: hidden;'><div>" \
+            #         f"<img src='{websis_building_image}' onerror='this.onerror=\"\"; src=\"{default_image}\";'/>" \
+            #     "</div></body></html>"
             # !Be aware of the funky quote formatting on the img source line - it's deliberate
             #  The little bit of code will insert a default image if the called one is missing
         else:
             imageview_string = "<!doctype html><html><body><H1>Nothing to show, sad..</H1></body></html>"
-        self.image_viewer.SetPage(imageview_string, "")
+        self.image_viewer.SetPage(imageview_string)
 
     # def telnet_button_evt_notused(self, _):
     #     self.device_telnet_tb.SetValue(utility.reboot_via_telnet("rainmaker.wunderground.com"))
@@ -1564,7 +1569,7 @@ class StatisticsReport(wx.Panel):
         info_sizer.Add(self.version_text, 0, wx.ALIGN_CENTER | wx.ALL, 5)
 
         self.info_text = wx.StaticText(self, wx.ID_ANY, f"AirTable data last changed:\n"
-                                       f"{ac_utility.get_file_timestamp(DATA_DIR / 'icandi.json')}",
+        f"{ac_utility.get_file_timestamp(DATA_DIR / 'icandi.json')}",
                                        wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTRE)
         self.info_text.Wrap(-1)
         self.info_text.SetFont(
@@ -1696,16 +1701,42 @@ class WebCamFrame(wx.Frame):
     def __init__(self, title, size, address):
         """Constructor"""
         wx.Frame.__init__(self, None, title=title, size=size)
-        self.sizer = wx.BoxSizer()
-        panel = wx.Panel(self)
-        cam_viewer = wx.html2.WebView.New(self, wx.ID_ANY, address, wx.DefaultPosition, wx.Size(size))
 
-        # TODO
-        # Might have to use wx.html.HtmlWindow for older webcams... maybe?
-        # Might have to wrap the viewer in html like I did on the webcam image viewer?
-        self.sizer.Add(cam_viewer, 1, wx.EXPAND)
+        # # TODO - give up on this and just use browser window & alt browser on button
+        # # Might have to use wx.html.HtmlWindow for older webcams... maybe?
+        # # Might have to wrap the viewer in html like I did on the webcam image viewer?
 
-        self.SetSizer(self.sizer)
+        self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
+
+        frame_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.main_panel = wx.Panel(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL)
+        panel_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        default_image = 'http://sisfm-enquiry.fm.uwa.edu.au/SISfm-Enquiry/sisdata/photos/thumb/CR/900103_1.jpg'
+
+        # self.cam_viewer = wx.html2.WebView.New(self, wx.ID_ANY, address, wx.DefaultPosition, wx.Size(size),
+        #                                        backend='WEBVIEW_WEBKIT')
+        self.cam_viewer = wx.html.HtmlWindow(self.main_panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize,
+                                             wx.html.HW_SCROLLBAR_NEVER)
+        self.cam_viewer.SetPage(address)
+
+        # cam_html = "<!DOCTYPE HTML><html><head></head>" \
+        #            "<body style='margin: 0px; overflow: hidden;'><img alt='Camera Offline'" \
+        #     f" src='{address}'/></body></html>"
+        # self.cam_viewer.SetPage(cam_html, "")
+
+        panel_sizer.Add(self.cam_viewer, 0, wx.ALL, 5)
+
+        self.main_panel.SetSizer(panel_sizer)
+        self.main_panel.Layout()
+        panel_sizer.Fit(self.main_panel)
+        frame_sizer.Add(self.main_panel, 1, wx.EXPAND | wx.ALL, 5)
+
+        self.SetSizer(frame_sizer)
+        self.Layout()
+
+        self.Centre(wx.BOTH)
 
 
 ###########################################################################
