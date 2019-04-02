@@ -125,7 +125,7 @@ class VenuesPanel(wx.Panel):
         self.venue_olv.evenRowsBackColor = wx.Colour(COLOUR_EVEN_LISTROW)
         self.venue_olv.oddRowsBackColor = wx.Colour(COLOUR_ODD_LISTROW)
         self.venue_olv.SetEmptyListMsg("No matching venues")
-        # self.venue_olv.SetEmptyListMsgColors(wx.WHITE, wx.Colour(COLOUR_EVEN_LISTROW))
+        self.venue_olv.SetEmptyListMsgColors(wx.WHITE, wx.Colour(COLOUR_EVEN_LISTROW))
 
         # self.venue_olv.rowFormatter = self.rowFormatter
         venues_section_sizer.Add(self.venue_olv, 1, wx.ALL | wx.EXPAND, 5)
@@ -165,7 +165,7 @@ class VenuesPanel(wx.Panel):
         self.device_olv.evenRowsBackColor = wx.Colour(COLOUR_EVEN_LISTROW)
         self.device_olv.oddRowsBackColor = wx.Colour(COLOUR_ODD_LISTROW)
         self.device_olv.SetEmptyListMsg("No devices")
-        # self.device_olv.SetEmptyListMsgColors(wx.WHITE, wx.Colour(COLOUR_EVEN_LISTROW))
+        self.device_olv.SetEmptyListMsgColors(wx.WHITE, wx.Colour(COLOUR_EVEN_LISTROW))
 
         # self.device_olv.rowFormatter(rowFormatter)  # TODO consider formatting cell dependant on ping result
         self.device_olv.SetMinSize(wx.Size(352, 325))
@@ -274,9 +274,9 @@ class VenuesPanel(wx.Panel):
         """ Cam viewer window spacer left """
         webcam_sizer.Add((0, 0), 1, wx.EXPAND)  # For horizontally aligning webcam viewer within webcam_sizer
 
-        self.cam_viewer = wx.html2.WebView.New(self, wx.ID_ANY, size=wx.Size(352, 230))
-        self.cam_viewer.SetMinSize((352, 230))
-        self.cam_viewer.SetMaxSize((352, 230))
+        self.cam_viewer = wx.html2.WebView.New(self, wx.ID_ANY, size=wx.Size(362, 245))
+        self.cam_viewer.SetMinSize((362, 245))
+        self.cam_viewer.SetMaxSize((362, 245))
         self.cam_viewer.EnableHistory(False)
         self.cam_viewer.Enable(False)
         webcam_sizer.Add(self.cam_viewer, 0, wx.ALL | wx.CENTER, 5)
@@ -659,7 +659,6 @@ class VenuesPanel(wx.Panel):
             self.timer.Stop()
             self.webcam_refresh_btn.SetLabel("Monitor")
             apply_button_template(self.webcam_refresh_btn)
-            # self.timer.Destroy() # use on closing
         else:
             self.timer.Start(frequency)
             self.webcam_refresh_btn.SetLabel("Monitoring")
@@ -682,7 +681,7 @@ class VenuesPanel(wx.Panel):
         VB60: Chrome; Suffix=/viewer/live/en/live.html; Size=810x745
         SonyCam: Firefox; Suffix=/en/JViewer.html; Size=860x590
         """
-        # TODO Placeholders until live
+        # TODO Placeholders until live = Much work to do on browsers
         # camera_type = "VB60"
         # camera_ip = "136.142.166.244"
 
@@ -1043,7 +1042,7 @@ class VenuesPanel(wx.Panel):
             # TODO next lines are placeholder until proper url is programmed
             # cam_url = "https://static.weboffice.uwa.edu.au/visualid/core-rebrand/img/uwacrest/uwacrest-white.png"
             # cam_url = "https://mrapps.mainroads.wa.gov.au/TrafficImages/CAM00199.jpg"
-            cam_url = "http://136.142.166.244/-wvhttp-01-/GetOneShot?"  # it's a VB60
+            # cam_url = "http://136.142.166.244/-wvhttp-01-/GetOneShot?"  # it's a VB60
             cam_html = "<!DOCTYPE HTML><html><head></head>" \
                        "<body style='margin: 0px; overflow: hidden;'><img alt='Camera Offline'" \
                 f" {image_size_str} src='{cam_url}'/></body></html>"
@@ -1065,7 +1064,6 @@ class VenuesPanel(wx.Panel):
                            "</video></div></body></html>"
             else:
                 cam_html = "<!doctype html><html><body><H1>No camera,</br>No awesome GIFs,</br>Sad..</H1></body></html>"
-
         if failed:
             cam_html = "<!doctype html><html><body>" \
                        "<H1>Camera says NO...</H1><H2>Can't connect</H2><H3>Sad...</H3>" \
@@ -1890,7 +1888,8 @@ class MainFrame(wx.Frame):
                 self.PushStatusText("New data available: click to update", 2)
                 self.status_bar.Enable()
             else:
-                _restore_status_text(prv_sb1_text, prv_sb2_text)
+                current_time = time.strftime('%d %b %Y %H:%M:%S', time.localtime())
+                _restore_status_text(prv_sb1_text, current_time)
 
     def _push_new_data(self):
         self.main_panel.venue_olv.SetObjects(venues_full, True)
