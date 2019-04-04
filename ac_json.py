@@ -14,10 +14,11 @@ from ac_constants import *
 """
 
 sims_root = "https://applicant.sims.uwa.edu.au/connect/webconnect?" \
-            "pagecd=UPTMTBL&dataname=%7Cp_mode%7Cp_ret%7Cp_draft_ind%7Cp_uoos"
-sims_query = "&datavalue=%7CVENUE%7CDTL%7CY%7CARTS%3A+%5B++G59%5D+Fox+Lecture+Hall"
+            "pagecd=UPTMTBL&dataname=%7Cp_mode%7Cp_ret%7Cp_draft_ind%7Cp_uoos&datavalue=%7CVENUE%7CDTL%7CY%7C"
+# sims_query = "ARTS%3A+%5B++G59%5D+Fox+Lecture+Hall"
 
-# sims_query = parse.quote_plus('&datavalue=|VENUE|GRD|Y|ARTS: [  G59]', safe='/&=')
+sims_query = parse.quote_plus('ARTS: [  G59] Fox Lecture Hall', safe='/&=')
+print(sims_query)
 
 
 def load_sims(url=sims_root, options=sims_query):
@@ -53,6 +54,8 @@ def build_sims_json():
             while "" in weeks:
                 weeks.remove("")
             bookingdetail["weeks"] = list(map(int, weeks))
+
+            bookingdetail["start"], bookingdetail["end"] = bookingdetail["duration"].split(" - ")
 
             if current_week in bookingdetail["weeks"]:
                 bookings_list.append(bookingdetail)
@@ -153,6 +156,7 @@ def build_icandi_json():
                         venue["projection"] = fields.get("Projection", "")
                         venue["projector"] = fields.get("Projector", "")
                         venue["asana"] = fields.get("Asana tag", "")
+                        venue["sdc"] = fields.get("_SDC_String", "")
 
                         # Construct a new key ["Devices ip"] by iterating through ["_Device Data"] - a list of
                         # semicolon separated device strings - "device name; ip; extension" and splitting into list

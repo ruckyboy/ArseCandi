@@ -344,7 +344,7 @@ class VenuesPanel(wx.Panel):
         details_section_sizer.Add(self.venue_name_text, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL | wx.EXPAND, 5)
 
         """ Venue Other Details """
-        details_fields_sizer = wx.FlexGridSizer(6, 2, 0, 0)
+        details_fields_sizer = wx.FlexGridSizer(7, 2, 0, 0)
 
         self.building_name_label = wx.StaticText(dss_gsb, wx.ID_ANY, "Building", wx.DefaultPosition, wx.Size(-1, 42),
                                                  wx.TE_RIGHT | wx.NO_BORDER)
@@ -371,24 +371,31 @@ class VenuesPanel(wx.Panel):
         self.phone_text = wx.TextCtrl(dss_gsb, wx.ID_ANY, "?", wx.DefaultPosition, wx.DefaultSize,
                                       wx.TE_READONLY | wx.NO_BORDER)
 
-        self.radio_mic_label = wx.StaticText(dss_gsb, wx.ID_ANY, "Radio Mic", wx.DefaultPosition, wx.Size(-1, 42),
+        self.radio_mic_label = wx.StaticText(dss_gsb, wx.ID_ANY, "Radio Mic", wx.DefaultPosition, wx.Size(-1, -1),
                                              wx.TE_RIGHT | wx.NO_BORDER)
         self.radio_mic_text = wx.TextCtrl(dss_gsb, wx.ID_ANY, "?", wx.DefaultPosition, wx.Size(-1, -1),
-                                          wx.TE_READONLY | wx.NO_BORDER | wx.TE_MULTILINE)
+                                          wx.TE_READONLY | wx.NO_BORDER)
+
+        self.sdc_label = wx.StaticText(dss_gsb, wx.ID_ANY, "SDC Area", wx.DefaultPosition, wx.Size(-1, -1),
+                                       wx.TE_RIGHT | wx.NO_BORDER)
+        self.sdc_text = wx.TextCtrl(dss_gsb, wx.ID_ANY, "?", wx.DefaultPosition, wx.Size(-1, -1),
+                                    wx.TE_READONLY | wx.NO_BORDER)
 
         details_text_list = [self.building_name_text,
                              self.room_number_text,
                              self.capacity_text,
                              self.ctf_text,
                              self.phone_text,
-                             self.radio_mic_text]
+                             self.radio_mic_text,
+                             self.sdc_text]
 
         details_labels_list = [self.building_name_label,
                                self.room_number_label,
                                self.capacity_label,
                                self.ctf_label,
                                self.phone_label,
-                               self.radio_mic_label]
+                               self.radio_mic_label,
+                               self.sdc_label]
 
         for label in details_labels_list:
             apply_text_template(label, "details_label")
@@ -405,7 +412,9 @@ class VenuesPanel(wx.Panel):
             (self.capacity_label, *ds_label_params), (self.capacity_text, *ds_text_params),
             (self.ctf_label, *ds_label_params), (self.ctf_text, *ds_text_params),
             (self.phone_label, *ds_label_params), (self.phone_text, *ds_text_params),
-            (self.radio_mic_label, *ds_label_params), (self.radio_mic_text, *ds_text_params)])
+            (self.radio_mic_label, *ds_label_params), (self.radio_mic_text, *ds_text_params),
+            (self.sdc_label, *ds_label_params), (self.sdc_text, *ds_text_params),
+        ])
 
         details_fields_sizer.AddGrowableCol(1, 1)  # Allows text controls column to expand (horizontally)
 
@@ -421,13 +430,8 @@ class VenuesPanel(wx.Panel):
         """ Image Viewer (buildings) """
         image_viewer_default = \
             "https://static.weboffice.uwa.edu.au/visualid/core-rebrand/img/uwacrest/uwacrest-white.png"
-        # self.image_viewer = wx.html2.WebView.New(dss_gsb, wx.ID_ANY, image_viewer_default, wx.DefaultPosition,
-        #                                          wx.Size(286, 187))
-
-        self.image_viewer = wx.html.HtmlWindow(dss_gsb, wx.ID_ANY, wx.DefaultPosition, wx.Size(286, 187),
-                                             wx.html.HW_SCROLLBAR_NEVER)
-        self.image_viewer.SetPage(image_viewer_default)
-
+        self.image_viewer = wx.html2.WebView.New(dss_gsb, wx.ID_ANY, image_viewer_default, wx.DefaultPosition,
+                                                 wx.Size(286, 187))
         self.image_viewer.SetMinSize((286, 187))
         self.image_viewer.SetMaxSize((286, 187))
         self.image_viewer.Enable(False)
@@ -486,6 +490,7 @@ class VenuesPanel(wx.Panel):
         self.asana_btn.Bind(wx.EVT_RIGHT_UP, self.btn_asana_evt)
         self.websis_btn.Bind(wx.EVT_BUTTON, self.btn_websis_evt)
         self.websis_btn.Bind(wx.EVT_RIGHT_UP, self.btn_websis_evt)
+        self.image_viewer.Bind
         self.Bind(wx.EVT_TIMER, self.tmr_webcam_update, self.timer)
 
         self.device_olv.Select(0)  # only needed to trigger device button formatting when app first started
@@ -652,7 +657,7 @@ class VenuesPanel(wx.Panel):
         # TODO - find echo http string to run, maybe?
 
     def webv_webcam_err_evt(self, event):
-        print("Gagged: " + event.GetURL())
+        print("Webcam Gagged: " + event.GetURL())
         current_venue = self.venue_olv.GetSelectedObject()
         wx.CallAfter(self.populate_camview, current_venue, failed=True)  # Note the format of function name + arguments
         #  waiting until this event finishes before sending request to update page - it's a timing thing
@@ -714,6 +719,7 @@ class VenuesPanel(wx.Panel):
         #     webcam_window = WebCamFrame(title=f"{camera_type} - {camera_ip}", size=win_size, address=viewer_url)
         #     webcam_window.Show()
         # else:
+
         if ext_browser == "Chrome":
             progstring = prefs_dict["main_browser"]
             browser_switch = "--new-window"
@@ -1004,6 +1010,7 @@ class VenuesPanel(wx.Panel):
             self.radio_mic_text.SetValue("  ".join(venue["radmicfreq"]))
         else:
             self.radio_mic_text.SetValue("")
+        self.sdc_text.SetValue(venue["sdc"])
         self.notes_text.SetValue(venue["notes"])
         # self.Layout()  # Had to call layout because the word-wrapped text fields were not sizing properly
 
@@ -1042,7 +1049,7 @@ class VenuesPanel(wx.Panel):
             # TODO next lines are placeholder until proper url is programmed
             # cam_url = "https://static.weboffice.uwa.edu.au/visualid/core-rebrand/img/uwacrest/uwacrest-white.png"
             # cam_url = "https://mrapps.mainroads.wa.gov.au/TrafficImages/CAM00199.jpg"
-            cam_url = "http://136.142.166.244/-wvhttp-01-/GetOneShot?"  # it's a VB60
+            # cam_url = "http://136.142.166.244/-wvhttp-01-/GetOneShot?"  # it's a VB60
             cam_html = "<!DOCTYPE HTML><html><head></head>" \
                        "<body style='margin: 0px; overflow: hidden;'><img alt='Camera Offline'" \
                 f" {image_size_str} src='{cam_url}'/></body></html>"
@@ -1051,17 +1058,22 @@ class VenuesPanel(wx.Panel):
             # if there is no webcam....
             self.webcam_open_btn.Hide()
             self.webcam_refresh_btn.Hide()
-            cam_image = ac_utility.random_file(str(CAM_IMAGE_DIR), [".mp4"])
+            cam_image = ac_utility.random_file(str(CAM_IMAGE_DIR), [".mp4", ".jpg"])
+            print(cam_image)
             if cam_image:
-                cam_html = "<!doctype html><html><head>" \
+                cam_html = "<!DOCTYPE html><html><head>" \
                            "<style type='text/css'>" \
                            "div{height: 210px; width: 328px; display: inline-block; " \
                            "vertical-align: top; position: relative;} " \
                            "video{max-height: 100%; max-width: 100%; width: auto; height: auto; " \
                            "position: absolute; top: 0; bottom: 0; left: 0; right: 0; margin: auto;}</style>" \
-                           "</head><body><div><video autoplay loop muted playsinline>" \
-                    f"<source src='file:///{str(CAM_IMAGE_DIR / cam_image)}'/>" \
-                           "</video></div></body></html>"
+                            "<div><video autoplay loop muted playsinline>" \
+                             f"<source src='file:///{str(CAM_IMAGE_DIR / cam_image)}'/></video></div>" \
+                           "</head><body>" \
+                           "</body></html>"
+
+
+            # f"<div><img src='file:///{str(CAM_IMAGE_DIR / cam_image)}'/></div>" \
             else:
                 cam_html = "<!doctype html><html><body><H1>No camera,</br>No awesome GIFs,</br>Sad..</H1></body></html>"
         if failed:
@@ -1085,27 +1097,19 @@ class VenuesPanel(wx.Panel):
             f"http://sisfm-enquiry.fm.uwa.edu.au/SISfm-Enquiry/sisdata/photos/thumb/CR/{websis_id[:6]}_1.jpg"
         if websis_building_image:
             imageview_string = \
-                "<!doctype html><html><head></head>" \
-                "<body>" \
-                f"<div><img src='{websis_building_image}' height='100%' width='100%'/>" \
+                "<!doctype html><html><head><style type='text/css'> img{" \
+                "display: block; " \
+                "margin-left: auto; margin-right: auto; " \
+                "width: 256px; max-height: 167px;" \
+                "} </style></head>" \
+                "<body style='margin: 8px; overflow: hidden;'><div>" \
+                    f"<img src='{websis_building_image}' onerror='this.onerror=\"\"; src=\"{default_image}\";'/>" \
                 "</div></body></html>"
-            # imageview_string = \
-            #     "<!doctype html><html><head><style type='text/css'> img{" \
-            #     "display: block; " \
-            #     "margin-left: auto; margin-right: auto; " \
-            #     "width: 256px; max-height: 167px;" \
-            #     "} </style></head>" \
-            #     "<body style='margin: 8px; overflow: hidden;'><div>" \
-            #         f"<img src='{websis_building_image}' onerror='this.onerror=\"\"; src=\"{default_image}\";'/>" \
-            #     "</div></body></html>"
             # !Be aware of the funky quote formatting on the img source line - it's deliberate
             #  The little bit of code will insert a default image if the called one is missing
         else:
             imageview_string = "<!doctype html><html><body><H1>Nothing to show, sad..</H1></body></html>"
-        self.image_viewer.SetPage(imageview_string)
-
-    # def telnet_button_evt_notused(self, _):
-    #     self.device_telnet_tb.SetValue(utility.reboot_via_telnet("rainmaker.wunderground.com"))
+        self.image_viewer.SetPage(imageview_string, "")
 
     def btn_autoping_toggle_evt(self, _):
         self.autoping_active = not self.autoping_active

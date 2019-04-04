@@ -138,7 +138,7 @@ DEFAULT_PREFS = {
     "main_browser": "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
     "alt_browser": "C:\\Program Files\\internet explorer\\iexplore.exe",
     "dameware": "C:\\Program Files\\SolarWinds\\DameWare Mini Remote Control 10.0 x64\\DWRCC.exe",
-    "shure": "C:\\Program Files\\shure\\wireless workbench 6\\bin\\wwb6.exe",
+    "shure": "C:\\Program Files\\shure\\wireless workbench 6\\Wireless Workbench 6.exe",
     "vnc": "C:\\Program Files\\uvnc bvba\\UltraVNC\\vncviewer.exe",
     "telnet": "\\bin\\telnetUltra.exe",
     "camera_refresh": 5000,
