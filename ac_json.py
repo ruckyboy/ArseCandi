@@ -13,15 +13,8 @@ from ac_constants import *
     # Airtable data can be parsed, filtered and then well formed before being written local
 """
 
-sims_root = "https://applicant.sims.uwa.edu.au/connect/webconnect?" \
-            "pagecd=UPTMTBL&dataname=%7Cp_mode%7Cp_ret%7Cp_draft_ind%7Cp_uoos&datavalue=%7CVENUE%7CDTL%7CY%7C"
-# sims_query = "ARTS%3A+%5B++G59%5D+Fox+Lecture+Hall"
 
-sims_query = parse.quote_plus('ARTS: [  G59] Fox Lecture Hall', safe='/&=')
-print(sims_query)
-
-
-def load_sims(url=sims_root, options=sims_query):
+def load_sims(url, options):
     """ sims returns a jquery? object of all room booking items (dictionaries) """
 
     try:
@@ -34,8 +27,14 @@ def load_sims(url=sims_root, options=sims_query):
     return pulljson, status
 
 
-def build_sims_json():
-    req, json_request_status = load_sims()
+def build_sims_json(sims_id):
+    # todo set this as a pref key and with advanced settings option
+    sims_root = "https://applicant.sims.uwa.edu.au/connect/webconnect?" \
+                "pagecd=UPTMTBL&dataname=%7Cp_mode%7Cp_ret%7Cp_draft_ind%7Cp_uoos&datavalue=%7CVENUE%7CDTL%7CY%7C"
+    # sims_query = parse.quote_plus('ARTS: [  G59] Fox Lecture Ha', safe='/&=')
+    sims_query = parse.quote_plus(sims_id, safe='/&=')
+
+    req, json_request_status = load_sims(sims_root, sims_query)
     if json_request_status == requests.codes.ok:
 
         current_week = datetime.now().date().isocalendar()[1]
@@ -60,9 +59,12 @@ def build_sims_json():
             if current_week in bookingdetail["weeks"]:
                 bookings_list.append(bookingdetail)
 
+        # todo we can not bother writing after testing
         temp_json_file = DATA_DIR / "sims.json"
         with temp_json_file.open("w") as file:
             json.dump(bookings_list, file, indent=2)
+
+        return bookings_list
 
     else:
         print(f'Failed to connect to sims\n\n({json_request_status})')

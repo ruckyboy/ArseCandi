@@ -331,9 +331,12 @@ class VenuesPanel(wx.Panel):
         self.websis_btn.SetToolTip("Right click to open in new window")
         apply_button_template(self.websis_btn)
 
+        self.timetable_btn = wx.Button(dss_gsb, wx.ID_ANY, "Timetable", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        apply_button_template(self.timetable_btn)
+
         ds_button_params = 0, wx.ALL | wx.EXPAND, 5
         details_button_sizer.AddMany([(self.airtable_btn, *ds_button_params), (self.asana_btn, *ds_button_params),
-                                      (self.websis_btn, *ds_button_params)])
+                                      (self.websis_btn, *ds_button_params), (self.timetable_btn, *ds_button_params)])
 
         details_section_sizer.Add(details_button_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP | wx.EXPAND, 5)
 
@@ -434,7 +437,7 @@ class VenuesPanel(wx.Panel):
                                                  wx.Size(286, 187))
         self.image_viewer.SetMinSize((286, 187))
         self.image_viewer.SetMaxSize((286, 187))
-        self.image_viewer.Enable(False)
+        # self.image_viewer.Enable(False)
 
         details_section_sizer.Add(self.image_viewer, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
 
@@ -490,7 +493,8 @@ class VenuesPanel(wx.Panel):
         self.asana_btn.Bind(wx.EVT_RIGHT_UP, self.btn_asana_evt)
         self.websis_btn.Bind(wx.EVT_BUTTON, self.btn_websis_evt)
         self.websis_btn.Bind(wx.EVT_RIGHT_UP, self.btn_websis_evt)
-        self.image_viewer.Bind
+        self.timetable_btn.Bind(wx.EVT_BUTTON, self.btn_timetable_evt)
+        self.image_viewer.Bind(wx.EVT_LEFT_DCLICK, self.btn_websis_evt)
         self.Bind(wx.EVT_TIMER, self.tmr_webcam_update, self.timer)
 
         self.device_olv.Select(0)  # only needed to trigger device button formatting when app first started
@@ -767,15 +771,32 @@ class VenuesPanel(wx.Panel):
             msg_warn(self, "Venue has no websis link", self.venue_olv.GetSelectedObject()["name"])
             return
 
-        progstring = prefs_dict["main_browser"]
-        websis_prefix_string = "http://sisfm-enquiry.fm.uwa.edu.au/sisfm-enquiry/mapEnquiry/default.aspx?loc_code="
-        ipstring = f'{websis_prefix_string}{venue_record}'
-        self._launch_main_browser(progstring, ipstring, right_click)
+    def btn_timetable_evt(self, event):
+        # opens a dialogue to venue's timetable
+        timetable_id = self.venue_olv.GetSelectedObject()["bookingid"]
+
+        if not timetable_id:
+            msg_warn(self, "Venue has no timetable information", self.venue_olv.GetSelectedObject()["name"])
+            return
+
+        # Todo shift to somewhere else as function
+        timetable_list = arsecandi.get_venue_timetable(timetable_id)
+        final_list = [[]for _ in range(7)]
+        print(final_list)
+        days_lst = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+        for index, day in enumerate(days_lst):
+            for item in timetable_list:
+                if item.get('day') == days_lst[index]:
+                    final_list[index].append(f"{item.get('duration')}   {item.get('title')}")
+            final_list[index].sort()
+
+        for i in range(7):
+            print(final_list[i])
 
     def olv_venue_keydown_evt(self, event):  # TODO rename method, split up if it makes sense
         keycode = event.GetKeyCode()
         if keycode in range(315, 318, 2):  # Checking for up & down cursor keys (315 & 317)
-            self.pause_device_updating = True  # Prevents venue devices and details updating until cursor key is released
+            self.pause_device_updating = True  # Prevents venue devices & details updating until cursor key is released
 
         if 91 > keycode > 47:  # this works for keys 0-9 and a-z plus a couple of others
             self.venues_search_tb.SetValue(chr(keycode).upper())
@@ -2029,6 +2050,7 @@ def on_about(_):
                 AirTable
                 Asana
                 WebSiS
+                Callista
                 DameWare(10)64bit
                 telnetUltra
                 UltraVNC
