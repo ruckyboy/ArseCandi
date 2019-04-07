@@ -37,7 +37,9 @@ def build_sims_json(sims_id):
     req, json_request_status = load_sims(sims_root, sims_query)
     if json_request_status == requests.codes.ok:
 
-        current_week = datetime.now().date().isocalendar()[1]
+        today_iso = datetime.now().date()
+        current_year, current_week, _ = today_iso.isocalendar()
+        # current_week = 4
 
         bookings_list = []
         cleaned_response = (req.text[1:-11])  # remove cruft from top and tail of response
@@ -48,18 +50,21 @@ def build_sims_json(sims_id):
             bookingdetail["title"] = booking.get("actLongFrm", "MISSING")
             bookingdetail["day"] = booking.get("day", "MISSING")
             bookingdetail["duration"] = booking.get("sttoend", "MISSING")
-            bookingdetail["weeknos"] = booking.get("wknos", "MISSING")
-            weeks = bookingdetail["weeknos"].split(',')
+            # bookingdetail["weeknos"] = booking.get("wknos", "MISSING")
+
+            weeks = booking.get("wknos", "MISSING").split(',')
             while "" in weeks:
                 weeks.remove("")
             bookingdetail["weeks"] = list(map(int, weeks))
 
             bookingdetail["start"], bookingdetail["end"] = bookingdetail["duration"].split(" - ")
+            if bookingdetail["end"] == "00:00":
+                bookingdetail["end"] = "24:00"
 
             if current_week in bookingdetail["weeks"]:
                 bookings_list.append(bookingdetail)
 
-        # todo we can not bother writing after testing
+        # todo we can not bother writing to disk after testing
         temp_json_file = DATA_DIR / "sims.json"
         with temp_json_file.open("w") as file:
             json.dump(bookings_list, file, indent=2)

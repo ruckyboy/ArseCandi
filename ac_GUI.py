@@ -17,6 +17,7 @@ from ac_constants import *
 import arsecandi
 import ac_utility
 import ac_ping
+import ac_html
 
 """  
 Naming Abbreviations:
@@ -275,10 +276,10 @@ class VenuesPanel(wx.Panel):
         webcam_sizer.Add((0, 0), 1, wx.EXPAND)  # For horizontally aligning webcam viewer within webcam_sizer
 
         self.cam_viewer = wx.html2.WebView.New(self, wx.ID_ANY, size=wx.Size(362, 245))
-        self.cam_viewer.SetMinSize((362, 245))
-        self.cam_viewer.SetMaxSize((362, 245))
+        self.cam_viewer.SetMinSize((352, 230))
+        self.cam_viewer.SetMaxSize((352, 230))
         self.cam_viewer.EnableHistory(False)
-        self.cam_viewer.Enable(False)
+        # self.tt_viewer.Enable(False)
         webcam_sizer.Add(self.cam_viewer, 0, wx.ALL | wx.CENTER, 5)
 
         """ Cam viewer window spacer right """
@@ -326,12 +327,14 @@ class VenuesPanel(wx.Panel):
         self.asana_btn = wx.Button(dss_gsb, wx.ID_ANY, "Asana", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
         self.asana_btn.SetToolTip("Right click to open in new window")
         apply_button_template(self.asana_btn)
+        self.asana_btn.Hide()
 
         self.websis_btn = wx.Button(dss_gsb, wx.ID_ANY, "WebSiS", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
         self.websis_btn.SetToolTip("Right click to open in new window")
         apply_button_template(self.websis_btn)
 
-        self.timetable_btn = wx.Button(dss_gsb, wx.ID_ANY, "Timetable", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        self.timetable_btn = wx.Button(dss_gsb, wx.ID_ANY, "Timetable", wx.DefaultPosition, wx.DefaultSize,
+                                       wx.NO_BORDER)
         apply_button_template(self.timetable_btn)
 
         ds_button_params = 0, wx.ALL | wx.EXPAND, 5
@@ -667,7 +670,7 @@ class VenuesPanel(wx.Panel):
         #  waiting until this event finishes before sending request to update page - it's a timing thing
 
     def btn_webcam_refresh_evt(self, _):
-        # wx.CallLater(1000, self.cam_viewer.Reload, flags=1)  # One shot refresh after 1 second
+        # wx.CallLater(1000, self.tt_viewer.Reload, flags=1)  # One shot refresh after 1 second
         frequency = prefs_dict["camera_refresh"]  # 1000 = One second refresh rate
         if self.timer.IsRunning():
             self.timer.Stop()
@@ -695,8 +698,8 @@ class VenuesPanel(wx.Panel):
         SonyCam: Firefox; Suffix=/en/JViewer.html; Size=860x590
         """
         # TODO Placeholders until live
-        # camera_type = "VB60"
-        # camera_ip = "136.142.166.244"
+        camera_type = "VB60"
+        camera_ip = "136.142.166.244"
 
         if camera_type == "SonyCam":
             viewer_url = f"http://{camera_ip}/en/JViewer.html"
@@ -708,7 +711,7 @@ class VenuesPanel(wx.Panel):
             ext_browser = "Chrome"
         elif camera_type == "VB60":
             viewer_url = f"http://{camera_ip}/viewer/live/en/live.html"
-            win_size = (810, 745)
+            win_size = (870, 820)
             ext_browser = "Chrome"
         elif camera_type == "VB50":
             viewer_url = f"http://{camera_ip}/sample/lvahuge.html"
@@ -719,24 +722,25 @@ class VenuesPanel(wx.Panel):
             win_size = (1024, 768)
             ext_browser = "Chrome"
 
-        # if not right_click:
-        #     webcam_window = WebCamFrame(title=f"{camera_type} - {camera_ip}", size=win_size, address=viewer_url)
-        #     webcam_window.Show()
-        # else:
-
-        if ext_browser == "Chrome":
-            progstring = prefs_dict["main_browser"]
-            browser_switch = "--new-window"
+        if not right_click:
+            WebCamFrame(title=f"{camera_type} - {camera_ip}", size=win_size, address=viewer_url,
+                        parent=self.GetParent())
+            # webcam_window.Show()
         else:
-            progstring = prefs_dict["alt_browser"]
-            browser_switch = "-new-window"
-        try:
-            subprocess.Popen(
-                [progstring, browser_switch, viewer_url])  # opens browser with new window at address passed
-        except OSError as e:
-            print("Browser failed to run:", e)
-            msg_warn(self, f"Browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
-        event.Skip()
+
+            if ext_browser == "Chrome":
+                progstring = prefs_dict["main_browser"]
+                browser_switch = "--new-window"
+            else:
+                progstring = prefs_dict["alt_browser"]
+                browser_switch = "-new-window"
+            try:
+                subprocess.Popen(
+                    [progstring, browser_switch, viewer_url])  # opens browser with new window at address passed
+            except OSError as e:
+                print("Browser failed to run:", e)
+                msg_warn(self, f"Browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
+            event.Skip()
 
     def btn_airtable_evt(self, event):
         # opens a web browser to the venue's AirTable page
@@ -773,25 +777,16 @@ class VenuesPanel(wx.Panel):
 
     def btn_timetable_evt(self, event):
         # opens a dialogue to venue's timetable
-        timetable_id = self.venue_olv.GetSelectedObject()["bookingid"]
+        sims_id = self.venue_olv.GetSelectedObject()["bookingid"]
+        venue_name = self.venue_olv.GetSelectedObject()["name"]
 
-        if not timetable_id:
-            msg_warn(self, "Venue has no timetable information", self.venue_olv.GetSelectedObject()["name"])
+        if not sims_id:
+            msg_warn(self, "Timetable information for this venue\rhas not been made available ", venue_name)
             return
 
-        # Todo shift to somewhere else as function
-        timetable_list = arsecandi.get_venue_timetable(timetable_id)
-        final_list = [[]for _ in range(7)]
-        print(final_list)
-        days_lst = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
-        for index, day in enumerate(days_lst):
-            for item in timetable_list:
-                if item.get('day') == days_lst[index]:
-                    final_list[index].append(f"{item.get('duration')}   {item.get('title')}")
-            final_list[index].sort()
+        tt_html = ac_html.timetable_html(sims_id, venue_name)
 
-        for i in range(7):
-            print(final_list[i])
+        TimeTableFrame("TIMETABLE FOR THIS WEEK", tt_html, parent=self.GetParent())
 
     def olv_venue_keydown_evt(self, event):  # TODO rename method, split up if it makes sense
         keycode = event.GetKeyCode()
@@ -1082,14 +1077,14 @@ class VenuesPanel(wx.Panel):
             cam_image = ac_utility.random_file(str(CAM_IMAGE_DIR), [".mp4", ".jpg"])
             print(cam_image)
             if cam_image:
-                cam_html = "<!DOCTYPE html><html><head>" \
+                cam_html = "<!DOCTYPE html><meta http-equiv='X-UA-Compatible' content='IE=edge' /><html><head>" \
                            "<style type='text/css'>" \
                            "div{height: 210px; width: 328px; display: inline-block; " \
                            "vertical-align: top; position: relative;} " \
                            "video{max-height: 100%; max-width: 100%; width: auto; height: auto; " \
                            "position: absolute; top: 0; bottom: 0; left: 0; right: 0; margin: auto;}</style>" \
-                            "<div><video autoplay loop muted playsinline>" \
-                             f"<source src='file:///{str(CAM_IMAGE_DIR / cam_image)}'/></video></div>" \
+                           "<div><video autoplay loop muted playsinline>" \
+                    f"<source src='file:///{str(CAM_IMAGE_DIR / cam_image)}'/></video></div>" \
                            "</head><body>" \
                            "</body></html>"
 
@@ -1118,7 +1113,8 @@ class VenuesPanel(wx.Panel):
             f"http://sisfm-enquiry.fm.uwa.edu.au/SISfm-Enquiry/sisdata/photos/thumb/CR/{websis_id[:6]}_1.jpg"
         if websis_building_image:
             imageview_string = \
-                "<!doctype html><html><head><style type='text/css'> img{" \
+                "<!doctype html><meta http-equiv='X-UA-Compatible' content='IE=edge' />" \
+                "<html><head><style type='text/css'> img{" \
                 "display: block; " \
                 "margin-left: auto; margin-right: auto; " \
                 "width: 256px; max-height: 167px;" \
@@ -1652,10 +1648,7 @@ class StatisticsReport(wx.Panel):
                     </tr>
                 </tbody>
             </table>
-            """)
 
-        self.htmlwin.AppendToPage(f"""
-            <font color='white'>
             <p></p>
             <table border=0 cellpadding=10 bgcolor={COLOUR_TABLE_BG}>
                 <thead>
@@ -1682,10 +1675,7 @@ class StatisticsReport(wx.Panel):
                     </tr>
                 </tbody>
             </table>
-            """)
 
-        self.htmlwin.AppendToPage(f"""
-            <font color='white'>
             <p></p>
             <table border=0 cellpadding=10 bgcolor={COLOUR_TABLE_BG}>
                 <thead>
@@ -1715,53 +1705,130 @@ class StatisticsReport(wx.Panel):
         self.SetSizer(panel_sizer)
         self.Layout()
 
-        ###########################################################################
-        # Class WebCam Frame
-        ###########################################################################
+
+###########################################################################
+# Class WebCam Frame
+###########################################################################
 
 
 class WebCamFrame(wx.Frame):
     """"""
 
-    def __init__(self, title, size, address):
+    def __init__(self, title, size, address, parent=None):
         """Constructor"""
-        wx.Frame.__init__(self, None, title=title, size=size)
+        wx.Frame.__init__(self, parent=parent, title=title, size=size)
 
         # # TODO - give up on this and just use browser window & alt browser on button
+        # # todo OR try using exit and bound close methods like MainFrame - might be better
         # # Might have to use wx.html.HtmlWindow for older webcams... maybe?
         # # Might have to wrap the viewer in html like I did on the webcam image viewer?
 
-        self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
+        self.SetSizeHints(size, size)
 
         frame_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.main_panel = wx.Panel(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL)
+        self.main_panel = wx.Panel(self, wx.ID_ANY, wx.DefaultPosition, size, wx.TAB_TRAVERSAL)
         panel_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        default_image = 'http://sisfm-enquiry.fm.uwa.edu.au/SISfm-Enquiry/sisdata/photos/thumb/CR/900103_1.jpg'
+        # default_image = 'http://sisfm-enquiry.fm.uwa.edu.au/SISfm-Enquiry/sisdata/photos/thumb/CR/900103_1.jpg'
 
-        # self.cam_viewer = wx.html2.WebView.New(self, wx.ID_ANY, address, wx.DefaultPosition, wx.Size(size),
-        #                                        backend='WEBVIEW_WEBKIT')
-        self.cam_viewer = wx.html.HtmlWindow(self.main_panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize,
-                                             wx.html.HW_SCROLLBAR_NEVER)
-        self.cam_viewer.SetPage(address)
+        self.cam_viewer = wx.html2.WebView.New(self.main_panel, wx.ID_ANY, address, wx.DefaultPosition, size)
+        # self.tt_viewer = wx.html.HtmlWindow(self.main_panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize,
+        #                                      wx.html.HW_SCROLLBAR_NEVER)
+        # self.tt_viewer.SetPage(address)
 
         # cam_html = "<!DOCTYPE HTML><html><head></head>" \
         #            "<body style='margin: 0px; overflow: hidden;'><img alt='Camera Offline'" \
         #     f" src='{address}'/></body></html>"
-        # self.cam_viewer.SetPage(cam_html, "")
+        # self.tt_viewer.SetPage(cam_html, "")
 
-        panel_sizer.Add(self.cam_viewer, 0, wx.ALL, 5)
+        panel_sizer.Add(self.cam_viewer, 1, wx.ALL)
 
         self.main_panel.SetSizer(panel_sizer)
         self.main_panel.Layout()
         panel_sizer.Fit(self.main_panel)
-        frame_sizer.Add(self.main_panel, 1, wx.EXPAND | wx.ALL, 5)
+        frame_sizer.Add(self.main_panel, 1, wx.EXPAND | wx.ALL)
 
         self.SetSizer(frame_sizer)
         self.Layout()
 
         self.Centre(wx.BOTH)
+        self.Show()
+
+        self.Bind(wx.EVT_CLOSE, self.i_stop_now)
+
+    def i_stop_now(self, evt):
+        self.Destroy()
+        evt.Skip()
+
+
+###########################################################################
+# Class TimeTable Frame
+###########################################################################
+
+
+class TimeTableFrame(wx.Frame):
+    """"""
+
+    def __init__(self, title, tt_html, parent=None):
+        """Constructor"""
+        self.tt_html = tt_html
+        self.current_content = 0
+
+        wx.Frame.__init__(self, parent=parent, title=title, size=wx.Size(1200, 760))
+
+        self.SetSizeHints((1200, 520), wx.DefaultSize)
+        # self.SetMinSize(wx.Size(1412, 840))
+
+        frame_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.main_panel = wx.Panel(self, wx.ID_ANY, wx.DefaultPosition, wx.Size(1200, 760))
+        self.main_panel.SetMinSize(wx.Size(1200, 520))
+
+        panel_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # panel_sizer.AddStretchSpacer()
+
+        self.view_btn = wx.Button(self.main_panel, wx.ID_ANY, "Change View", wx.DefaultPosition, wx.DefaultSize, 0)
+        panel_sizer.Add(self.view_btn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+
+        self.tt_viewer = wx.html2.WebView.New(self.main_panel)
+        self.tt_viewer.SetMinSize(wx.Size(1200, 520))
+
+        self.tt_viewer.SetPage(self.tt_html[self.current_content], "")
+        # self.tt_viewer.SetPage(list_html, "")
+
+        panel_sizer.Add(self.tt_viewer, 2, wx.ALIGN_CENTER | wx.EXPAND | wx.ALL)
+
+        self.tt_viewer.Enable(True)
+        # panel_sizer.Add((0, 0), 1, wx.EXPAND, 5)
+
+        panel_sizer.AddStretchSpacer()
+        self.main_panel.SetSizer(panel_sizer)
+        self.main_panel.Layout()
+        # panel_sizer.Fit(self.main_panel)
+        frame_sizer.Add(self.main_panel, 1, wx.EXPAND | wx.ALL)
+
+        self.SetSizer(frame_sizer)
+        self.Layout()
+
+        self.Centre(wx.BOTH)
+        self.Show()
+
+        """
+        ### Setup event binding connections
+        """
+
+        self.view_btn.Bind(wx.EVT_BUTTON, self.btn_view_evt)
+        self.Bind(wx.EVT_CLOSE, self.close_frame)
+
+    def btn_view_evt(self, event):
+        self.current_content = not self.current_content
+        self.tt_viewer.SetPage(self.tt_html[self.current_content], "")
+        event.Skip()
+
+    def close_frame(self, event):
+        event.Skip()
 
 
 ###########################################################################
@@ -2087,14 +2154,6 @@ def bg_refresh_permitted(new_data=False):
         return True
 
     return False
-
-
-# # TODO Not used? remove if not needed
-# def msg_warn_option(parent, message, caption="Caution!"):
-#     dlg = wx.MessageDialog(parent, message, caption, wx.YES_NO | wx.ICON_EXCLAMATION)
-#     result = dlg.ShowModal()
-#     dlg.Destroy()
-#     return result
 
 
 if __name__ == '__main__':

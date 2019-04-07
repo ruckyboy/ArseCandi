@@ -35,10 +35,6 @@ def get_venue_list(location: Path, force_build=False):
     return venue_list, new_data, fail_msg
 
 
-def get_venue_timetable(sims_id):
-    return ac_json.build_sims_json(sims_id)
-
-
 def get_venue_stats(venues_list):
     """
     A simple helper function to construct a dictionary of stats from the main venues list

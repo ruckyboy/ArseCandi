@@ -122,7 +122,6 @@ def replace_with_updated(f_target: Path, f_candidate: Path, f_backup: Path = Non
                 quit_on_fail("Failure updating files for some reason")
 
 
-
 """
 #########################################################################################
    Preference Shelf related utilities
@@ -133,6 +132,8 @@ DEFAULT_PREFS = {
     "bearer_key": "keyfppFBhdYli2nSr",
     "airtable_url": "https://api.airtable.com/v0/appXOyM6EA9QQpWU0/Venue?view=iCandi",
     "airtable_web": "https://airtable.com/tblFYadwHdtDdKnV1/viw0KhCtD6urafgST",
+    "callista_root": "https://applicant.sims.uwa.edu.au/connect/webconnect?pagecd=UPTMTBL"
+                     "&dataname=%7Cp_mode%7Cp_ret%7Cp_draft_ind%7Cp_uoos&datavalue=%7CVENUE%7CDTL%7CY%7C",
     # Settings window parameters
     "staff_id": "900xxxxx",
     "main_browser": "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
@@ -331,3 +332,4 @@ if __name__ == '__main__':
     print(a)
     print(b)
     print(c)
+
