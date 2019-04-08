@@ -46,7 +46,6 @@ def timetable_html(sims_id, venue):
             tt_matrix[i][booking[2] - 7] = (booking[1], booking[3])
     # NB lectures with multiple attending units will only show the last unit name
 
-    # TODO - handle two units in the same lecture {grid view only , it's ok on list}
     # Build the grid view html ####
     grid_view = """
     <!DOCTYPE HTML>
