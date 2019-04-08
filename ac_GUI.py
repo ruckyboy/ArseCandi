@@ -521,7 +521,8 @@ class VenuesPanel(wx.Panel):
 
         if "Extron Touch Panel" in (self.device_olv.GetSelectedObject()[0]):
             extension = self.device_olv.GetSelectedObject()[2]
-            ipstring = f'https://{ipstring}/web/vtlp/{extension}/vtlp.html'
+            ipstring = f'https://{ipstring}/web/vtlp/{extension}/index.html#/main'
+            print(ipstring)
 
         if not right_click:
             progstring = prefs_dict["main_browser"]
@@ -607,8 +608,8 @@ class VenuesPanel(wx.Panel):
             pwd = "password"
         if dlg == wx.YES:
             # TODO reinstate below for uwa use
-            # ipstring = self.device_olv.GetSelectedObject()[1]
-            ipstring = "rainmaker.wunderground.com"  # Placeholder
+            ipstring = self.device_olv.GetSelectedObject()[1]
+            # ipstring = "rainmaker.wunderground.com"  # Placeholder
             response = ac_utility.reboot_via_telnet(ipstring, user, pwd)
 
             MultiMessageBox(f'{venue_name} : {device_type}', "Telnet Session Details...", response)
@@ -698,8 +699,8 @@ class VenuesPanel(wx.Panel):
         SonyCam: Firefox; Suffix=/en/JViewer.html; Size=860x590
         """
         # TODO Placeholders until live
-        camera_type = "VB60"
-        camera_ip = "136.142.166.244"
+        # camera_type = "VB60"
+        # camera_ip = "136.142.166.244"
 
         if camera_type == "SonyCam":
             viewer_url = f"http://{camera_ip}/en/JViewer.html"
@@ -722,25 +723,25 @@ class VenuesPanel(wx.Panel):
             win_size = (1024, 768)
             ext_browser = "Chrome"
 
-        if not right_click:
-            WebCamFrame(title=f"{camera_type} - {camera_ip}", size=win_size, address=viewer_url,
-                        parent=self.GetParent())
-            # webcam_window.Show()
-        else:
+        # if not right_click:
+        #     WebCamFrame(title=f"{camera_type} - {camera_ip}", size=win_size, address=viewer_url,
+        #                 parent=self.GetParent())
+        #     # webcam_window.Show()
+        # else:
 
-            if ext_browser == "Chrome":
-                progstring = prefs_dict["main_browser"]
-                browser_switch = "--new-window"
-            else:
-                progstring = prefs_dict["alt_browser"]
-                browser_switch = "-new-window"
-            try:
-                subprocess.Popen(
-                    [progstring, browser_switch, viewer_url])  # opens browser with new window at address passed
-            except OSError as e:
-                print("Browser failed to run:", e)
-                msg_warn(self, f"Browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
-            event.Skip()
+        if ext_browser == "Chrome":
+            progstring = prefs_dict["main_browser"]
+            browser_switch = "--new-window"
+        else:
+            progstring = prefs_dict["alt_browser"]
+            browser_switch = "-new-window"
+        try:
+            subprocess.Popen(
+                [progstring, browser_switch, viewer_url])  # opens browser with new window at address passed
+        except OSError as e:
+            print("Browser failed to run:", e)
+            msg_warn(self, f"Browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
+        event.Skip()
 
     def btn_airtable_evt(self, event):
         # opens a web browser to the venue's AirTable page
@@ -774,6 +775,11 @@ class VenuesPanel(wx.Panel):
         if venue_record == "":
             msg_warn(self, "Venue has no websis link", self.venue_olv.GetSelectedObject()["name"])
             return
+
+        progstring = prefs_dict["main_browser"]
+        websis_prefix_string = "http://sisfm-enquiry.fm.uwa.edu.au/sisfm-enquiry/mapEnquiry/default.aspx?loc_code="
+        ipstring = f'{websis_prefix_string}{venue_record}'
+        self._launch_main_browser(progstring, ipstring, right_click)
 
     def btn_timetable_evt(self, event):
         # opens a dialogue to venue's timetable
