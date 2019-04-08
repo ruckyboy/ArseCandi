@@ -298,7 +298,7 @@ class VenuesPanel(wx.Panel):
 
         self.webcam_open_btn = wx.Button(self, wx.ID_ANY, "Camera Type", wx.DefaultPosition, wx.DefaultSize,
                                          wx.NO_BORDER)
-        self.webcam_open_btn.SetToolTip("Open camera with viewer\n(Right click opens in browser)")
+        self.webcam_open_btn.SetToolTip("Open camera with browser\n(Right click opens in viewer)")
         apply_button_template(self.webcam_open_btn)
         self.webcam_open_btn.SetMinSize(wx.Size(112, -1))
         webcam_buttons_sizer.Add(self.webcam_open_btn, 0, wx.ALL | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
@@ -583,7 +583,7 @@ class VenuesPanel(wx.Panel):
         progstring = prefs_dict["telnet"]
         # TODO reinstate below for uwa use
         ipstring = self.device_olv.GetSelectedObject()[1]
-        ipstring = "35.160.169.47"  # Testing only
+        # ipstring = "35.160.169.47"  # Testing only
         try:
             # subprocess.Popen(["start", "cmd.exe /k", "ping.exe", "www.google.com"], shell=True)
             # For Telnet use Popen with argument shell=True
@@ -723,25 +723,25 @@ class VenuesPanel(wx.Panel):
             win_size = (1024, 768)
             ext_browser = "Chrome"
 
-        # if not right_click:
-        #     WebCamFrame(title=f"{camera_type} - {camera_ip}", size=win_size, address=viewer_url,
-        #                 parent=self.GetParent())
-        #     # webcam_window.Show()
-        # else:
-
-        if ext_browser == "Chrome":
-            progstring = prefs_dict["main_browser"]
-            browser_switch = "--new-window"
+        if right_click:
+            WebCamFrame(title=f"{camera_type} - {camera_ip}", size=win_size, address=viewer_url,
+                        parent=self.GetParent())
+            # webcam_window.Show()
         else:
-            progstring = prefs_dict["alt_browser"]
-            browser_switch = "-new-window"
-        try:
-            subprocess.Popen(
-                [progstring, browser_switch, viewer_url])  # opens browser with new window at address passed
-        except OSError as e:
-            print("Browser failed to run:", e)
-            msg_warn(self, f"Browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
-        event.Skip()
+
+            if ext_browser == "Chrome":
+                progstring = prefs_dict["main_browser"]
+                browser_switch = "--new-window"
+            else:
+                progstring = prefs_dict["alt_browser"]
+                browser_switch = "-new-window"
+            try:
+                subprocess.Popen(
+                    [progstring, browser_switch, viewer_url])  # opens browser with new window at address passed
+            except OSError as e:
+                print("Browser failed to run:", e)
+                msg_warn(self, f"Browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
+            event.Skip()
 
     def btn_airtable_evt(self, event):
         # opens a web browser to the venue's AirTable page

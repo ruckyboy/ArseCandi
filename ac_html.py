@@ -1,11 +1,4 @@
-import hashlib
-import shelve
-import os
-from pathlib import Path
-from random import randrange
-import time
 from datetime import datetime
-from telnetlib import Telnet
 import ac_json
 
 
@@ -33,12 +26,14 @@ def timetable_html(sims_id, venue):
                 final_list[index].append(f"{item.get('duration')}   {item.get('title')}")
         final_list[index].sort()
 
+    # Just for test print ####
     dlg_str = ""
     for i in range(7):
         dlg_str += f'{days_lst[i]}\r'
         for tt in final_list[i]:
             dlg_str += f'{tt}\r'
         print(final_list[i])
+    # End test print ########
 
     # TODO - handle two units in the same lecture {grid view only , it's ok on list}
 
