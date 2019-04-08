@@ -792,7 +792,7 @@ class VenuesPanel(wx.Panel):
 
         tt_html = ac_html.timetable_html(sims_id, venue_name)
 
-        TimeTableFrame("TIMETABLE FOR THIS WEEK", tt_html, parent=self.GetParent())
+        TimeTableFrame(f"{venue_name} Timetable", tt_html, parent=self.GetParent())
 
     def olv_venue_keydown_evt(self, event):  # TODO rename method, split up if it makes sense
         keycode = event.GetKeyCode()

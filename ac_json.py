@@ -47,7 +47,7 @@ def build_sims_json(sims_id):
         # the return from the query is a mish mash of stuff, not json, no consistency in formatting, etc  X:(
         for booking in loaded[1:]:  # dump the first record - just structure info
             bookingdetail = {}
-            bookingdetail["title"] = booking.get("actLongFrm", "MISSING")
+            bookingdetail["title"] = booking.get("actLongFrm", "MISSING").replace("_", " ")
             bookingdetail["day"] = booking.get("day", "MISSING")
             bookingdetail["duration"] = booking.get("sttoend", "MISSING")
             # bookingdetail["weeknos"] = booking.get("wknos", "MISSING")
@@ -57,9 +57,13 @@ def build_sims_json(sims_id):
                 weeks.remove("")
             bookingdetail["weeks"] = list(map(int, weeks))
 
-            bookingdetail["start"], bookingdetail["end"] = bookingdetail["duration"].split(" - ")
-            if bookingdetail["end"] == "00:00":
-                bookingdetail["end"] = "24:00"
+            b_start, b_end = bookingdetail["duration"].split(" - ")   # split "duration" into start and end time strings
+            g_start = int(b_start.split(":")[0])    # convert the start string into int of hour value
+            bookingdetail["g_start"] = g_start if g_start > 7 else 7  # grid start time is no less than 7
+            g_end = int(b_end.split(":")[0])    # convert the start string into int of hour value
+            if g_end == 0:
+                g_end = 24   # make booking times finish at 24:00 hours (not 00:00)
+            bookingdetail["g_span"] = g_end - g_start
 
             if current_week in bookingdetail["weeks"]:
                 bookings_list.append(bookingdetail)
