@@ -1,0 +1,21 @@
+Having issues with html5 rendering on UWA win10 desktop
+Made sure that all html calls start with: <!DOCTYPE html><meta http-equiv='X-UA-Compatible' content='IE=edge' />
+    this forces IE11 to render css a bit better
+Change/Add Registry keys:
+Computer\HKEY_CURRENT_USER\Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION
+Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION
+Computer\HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION
+Computer\HKEY_USERS\S-1-5-21-905479342-1514983418-1536837410-132549\Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION
+
+try adding a new DWORD...   python.exe 11001 hex (the first key should be enough, the other 3 are overkill but needed?)
+
+A bit more info here:
+https://docs.microsoft.com/en-us/previous-versions/windows/internet-explorer/ie-developer/general-info/ee330730(v=vs.85)#browser_emulation
+https://weblog.west-wind.com/posts/2011/may/21/web-browser-control-specifying-the-ie-version
+https://cheekymonkeymedia.ca/blog/how-deal-ie-internet-explorer-11-render-issues
+
+**********************
+
+Look at preloading cam image before displaying (webcam frames)
+
+Use ip allocation notes on mouse hover in device list

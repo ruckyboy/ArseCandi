@@ -222,11 +222,11 @@ class VenuesPanel(wx.Panel):
         device_list_buttons_sizer.Add(self.webcontrol_btn, 0,
                                       wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
 
-        self.shure_btn = wx.Button(self, wx.ID_ANY, "Shure Control", wx.DefaultPosition, wx.DefaultSize,
-                                   wx.NO_BORDER)
-        apply_button_template(self.shure_btn)
-        device_list_buttons_sizer.Add(self.shure_btn, 0,
-                                      wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+        # self.shure_btn = wx.Button(self, wx.ID_ANY, "Shure Control", wx.DefaultPosition, wx.DefaultSize,
+        #                            wx.NO_BORDER)
+        # apply_button_template(self.shure_btn)
+        # device_list_buttons_sizer.Add(self.shure_btn, 0,
+        #                               wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
 
         self.vnc_btn = wx.Button(self, wx.ID_ANY, "VNC", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
         apply_button_template(self.vnc_btn)
@@ -479,7 +479,7 @@ class VenuesPanel(wx.Panel):
         self.ping_btn.Bind(wx.EVT_BUTTON, self.btn_ping_evt)
         self.webcontrol_btn.Bind(wx.EVT_BUTTON, self.btn_webcontrol_evt)
         self.webcontrol_btn.Bind(wx.EVT_RIGHT_UP, self.btn_webcontrol_evt)
-        self.shure_btn.Bind(wx.EVT_BUTTON, self.btn_shure_wwb_evt)
+        # self.shure_btn.Bind(wx.EVT_BUTTON, self.btn_shure_wwb_evt)
         self.vnc_btn.Bind(wx.EVT_BUTTON, self.btn_vnc_evt)
         self.telnet_btn.Bind(wx.EVT_BUTTON, self.btn_telnet_evt)
         self.reboot_btn.Bind(wx.EVT_BUTTON, self.btn_reboot_evt)
@@ -552,17 +552,17 @@ class VenuesPanel(wx.Panel):
 
     """ chrome switches: https://www.ghacks.net/2013/10/06/list-useful-google-chrome-command-line-switches/"""
 
-    def btn_shure_wwb_evt(self, _):
-        # Temporary code for Shure radio mic interface - yet to be determined
-        # probably should look at how Dameware is opened and use similar coding
-        progstring = prefs_dict["shure"]
-        ipstring = self.device_olv.GetSelectedObject()[1]
-        try:
-            subprocess.Popen([progstring, "--window-size=1024,768", "--new-window", ipstring])
-            # opens chrome with new window at address passed, if Chrome is already open it ignores sizing flags :(
-        except OSError as e:
-            print("Shure interface failed to run:", e)
-            msg_warn(self, f"Shure interface failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
+    # def btn_shure_wwb_evt(self, _):
+    #     # Temporary code for Shure radio mic interface - yet to be determined
+    #     # probably should look at how Dameware is opened and use similar coding
+    #     progstring = prefs_dict["shure"]
+    #     ipstring = self.device_olv.GetSelectedObject()[1]
+    #     try:
+    #         subprocess.Popen([progstring, "--window-size=1024,768", "--new-window", ipstring])
+    #         # opens chrome with new window at address passed, if Chrome is already open it ignores sizing flags :(
+    #     except OSError as e:
+    #         print("Shure interface failed to run:", e)
+    #         msg_warn(self, f"Shure interface failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
 
     def btn_vnc_evt(self, _):
         # opens a VNC session for AMX touchpanels
@@ -659,10 +659,9 @@ class VenuesPanel(wx.Panel):
         for row in range(self.device_olv.GetItemCount()):
             if "[Echo 360]" in (self.device_olv.GetItemText(row, 1)):
                 ipstring = self.device_olv.GetItemText(row, 0)
-                full_ipstring = f'https://admin:password@{ipstring}:8443/advanced'
+                full_ipstring = f'https://admin:password@{ipstring}/advanced'
                 self._launch_main_browser(progstring, full_ipstring)
                 break
-        # TODO - find echo http string to run, maybe?
 
     def webv_webcam_err_evt(self, event):
         print("Webcam Gagged: " + event.GetURL())
@@ -853,10 +852,6 @@ class VenuesPanel(wx.Panel):
             apply_button_template(self.vnc_btn)
         else:
             apply_button_template(self.vnc_btn, "disabled")
-        if current_device.startswith("Rad"):
-            apply_button_template(self.shure_btn)
-        else:
-            apply_button_template(self.shure_btn, "disabled")
 
         self.enable_group_buttons()
 
@@ -1067,12 +1062,9 @@ class VenuesPanel(wx.Panel):
             # TODO consider saving values in prefs as a dictionary formatted as string?
             # TODO then we can edit each value in an advanced preferences dialogue rather than hard coding
             # TODO still need to condense /normalise code in this method
-            print(cam_url)
             # TODO next lines are placeholder until proper url is programmed
-            # cam_url = "https://static.weboffice.uwa.edu.au/visualid/core-rebrand/img/uwacrest/uwacrest-white.png"
-            # cam_url = "https://mrapps.mainroads.wa.gov.au/TrafficImages/CAM00199.jpg"
             # cam_url = "http://136.142.166.244/-wvhttp-01-/GetOneShot?"  # it's a VB60
-            cam_html = "<!DOCTYPE HTML><html><head></head>" \
+            cam_html = "<!DOCTYPE html><meta http-equiv='X-UA-Compatible' content='IE=edge' /><html><head></head>" \
                        "<body style='margin: 0px; overflow: hidden;'><img alt='Camera Offline'" \
                 f" {image_size_str} src='{cam_url}'/></body></html>"
 
@@ -1080,8 +1072,7 @@ class VenuesPanel(wx.Panel):
             # if there is no webcam....
             self.webcam_open_btn.Hide()
             self.webcam_refresh_btn.Hide()
-            cam_image = ac_utility.random_file(str(CAM_IMAGE_DIR), [".mp4", ".jpg"])
-            print(cam_image)
+            cam_image = ac_utility.random_file(str(CAM_IMAGE_DIR), [".mp4"])
             if cam_image:
                 cam_html = "<!DOCTYPE html><meta http-equiv='X-UA-Compatible' content='IE=edge' /><html><head>" \
                            "<style type='text/css'>" \
@@ -1094,8 +1085,6 @@ class VenuesPanel(wx.Panel):
                            "</head><body>" \
                            "</body></html>"
 
-
-            # f"<div><img src='file:///{str(CAM_IMAGE_DIR / cam_image)}'/></div>" \
             else:
                 cam_html = "<!doctype html><html><body><H1>No camera,</br>No awesome GIFs,</br>Sad..</H1></body></html>"
         if failed:
@@ -1150,8 +1139,6 @@ class VenuesPanel(wx.Panel):
         # NOTE neither enable() or show() prevent mouse event queuing - ie. clicks still register
 
         self.ping_btn.Hide()
-        # self.ping_btn.HideWithEffect(wx.SHOW_EFFECT_SLIDE_TO_LEFT, timeout=80)
-        # self.ping_btn.Enable(False)  # tried to disable because the area that the button was showing is still 'active'
         device_ip = [self.device_olv.GetSelectedObject()[1]]
         timeout = 1000
         batchsize = 1
@@ -1161,7 +1148,6 @@ class VenuesPanel(wx.Panel):
         result, _ = ac_ping.start(device_ip, batchsize, timeout)  # don't need the second value (process_time)
         del busy_cursor
         self.device_olv.SetItem(index, 2, result[0][1])  # populate device 'ping' column with result
-        # self.ping_btn.ShowWithEffect(wx.SHOW_EFFECT_SLIDE_TO_RIGHT, timeout=80)
         wx.YieldIfNeeded()  # Trying this to prevent extra clicks caching - seems to work well (with hidden button)
         self.ping_btn.Show()
 
@@ -1739,14 +1725,6 @@ class WebCamFrame(wx.Frame):
         # default_image = 'http://sisfm-enquiry.fm.uwa.edu.au/SISfm-Enquiry/sisdata/photos/thumb/CR/900103_1.jpg'
 
         self.cam_viewer = wx.html2.WebView.New(self.main_panel, wx.ID_ANY, address, wx.DefaultPosition, size)
-        # self.tt_viewer = wx.html.HtmlWindow(self.main_panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize,
-        #                                      wx.html.HW_SCROLLBAR_NEVER)
-        # self.tt_viewer.SetPage(address)
-
-        # cam_html = "<!DOCTYPE HTML><html><head></head>" \
-        #            "<body style='margin: 0px; overflow: hidden;'><img alt='Camera Offline'" \
-        #     f" src='{address}'/></body></html>"
-        # self.tt_viewer.SetPage(cam_html, "")
 
         panel_sizer.Add(self.cam_viewer, 1, wx.ALL)
 
@@ -1881,6 +1859,7 @@ class MainFrame(wx.Frame):
         menubar = wx.MenuBar()  # instantiate a MenuBar object
         menubar.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_BTNFACE))
         self.file = wx.Menu()  # instantiate a Menu object
+        self.links = wx.Menu()
         self.view = wx.Menu()
 
         # instantiate a Menu Item object and add to Menu
@@ -1901,7 +1880,20 @@ class MainFrame(wx.Frame):
         exit_item = wx.MenuItem(self.file, wx.ID_EXIT, "&Exit", wx.EmptyString, wx.ITEM_NORMAL)
         self.file.Append(exit_item)
 
+        self.timetable_item = wx.MenuItem(self.file, wx.ID_ANY, "&Timetable", "Timetable Website", wx.ITEM_NORMAL)
+        self.links.Append(self.timetable_item)
+        self.booker_item = wx.MenuItem(self.file, wx.ID_ANY, "&Resource Booker", "Resource Booker Website",
+                                       wx.ITEM_NORMAL)
+        self.links.Append(self.booker_item)
+        self.links.AppendSeparator()
+        self.echo_item = wx.MenuItem(self.file, wx.ID_ANY, "&Echo 360", "Echo 360 Monitor", wx.ITEM_NORMAL)
+        self.links.Append(self.echo_item)
+        self.workbench_item = wx.MenuItem(self.file, wx.ID_ANY, "&Wireless Workbench", "Shure Wireless Workbench 6",
+                                          wx.ITEM_NORMAL)
+        self.links.Append(self.workbench_item)
+
         menubar.Append(self.file, "&File")  # add Menu object to MenuBar object
+        menubar.Append(self.links, "&Links")
         menubar.Append(self.view, "&View")
 
         self.SetMenuBar(menubar)  # add MenuBar object to MainFrame
@@ -1928,6 +1920,10 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.switch_panel, id=self.settings_item.GetId())
         self.Bind(wx.EVT_MENU, self.switch_panel, id=self.main_item.GetId())
         self.Bind(wx.EVT_MENU, self.switch_panel, id=self.report_item.GetId())
+        self.Bind(wx.EVT_MENU, self.timetable_menu_evt, id=self.timetable_item.GetId())
+        self.Bind(wx.EVT_MENU, self.booker_menu_evt, id=self.booker_item.GetId())
+        self.Bind(wx.EVT_MENU, self.echo_menu_evt, id=self.echo_item.GetId())
+        self.Bind(wx.EVT_MENU, self.workbench_menu_evt, id=self.workbench_item.GetId())
         self.Bind(wx.EVT_MENU, on_about, id=wx.ID_ABOUT)
         self.Bind(wx.EVT_CLOSE, self.close_n_tidy)
         self.status_bar.Bind(wx.EVT_LEFT_DOWN, self.status_click_evt)
@@ -1978,6 +1974,34 @@ class MainFrame(wx.Frame):
         del self.main_panel.timer  # precaution only - don't think it matters
 
         event.Skip()
+
+    def timetable_menu_evt(self, _):
+        """        try:
+                    subprocess.Popen([progstring, "--window-size=1024,768", "--new-window", ipstring])
+                        # opens chrome with new window at address passed, if Chrome is already open it ignores sizing flags :(
+                 else:
+                        subprocess.Popen([progstring, "--window-size=1024,768", ipstring])  # new tab
+                except OSError as e:
+                    print("Browser failed to run:", e)
+                    msg_warn(self, f"Browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
+        """
+        pass
+
+    def booker_menu_evt(self, _):
+        pass
+
+    def echo_menu_evt(self, _):
+        pass
+
+    def workbench_menu_evt(self, _):
+        progstring = prefs_dict["shure"]
+        try:
+            subprocess.Popen([progstring])
+            # opens Wireless Workbench 6 ( takes no parameters )
+        except OSError as e:
+            print("Wireless Workbench 6 failed to run:", e)
+            msg_warn(self, f"Wireless Workbench 6 failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
+        pass
 
     def refresh_menu_evt(self, _):
         self.refresh_data()

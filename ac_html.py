@@ -27,7 +27,7 @@ def timetable_html(sims_id, venue):
         view_list[index].sort(key=lambda x: x[2])
 
     # Build the list view html ####
-    html_str = "<!DOCTYPE HTML>\r<html>\r<head></head>\r<body>\r"
+    html_str = "<!DOCTYPE html><meta http-equiv='X-UA-Compatible' content='IE=edge' />\r<html>\r<head></head>\r<body>\r"
     html_str += f'<p>{venue}: Bookings for week {current_week}, commencing {cw_monday}</p>\r'
     for i in range(7):
         html_str += f'<p>\r{days_lst[i]}<br/>\r'
@@ -48,7 +48,7 @@ def timetable_html(sims_id, venue):
 
     # Build the grid view html ####
     grid_view = """
-    <!DOCTYPE HTML>
+    <!DOCTYPE html><meta http-equiv='X-UA-Compatible' content='IE=edge' />
     <html>
     <head>
     <style type="text/css">
