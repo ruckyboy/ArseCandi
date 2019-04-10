@@ -1038,7 +1038,7 @@ class VenuesPanel(wx.Panel):
             # TODO then we can edit each value in an advanced preferences dialogue rather than hard coding
             # TODO still need to condense /normalise code in this method
             # TODO next lines are placeholder until proper url is programmed
-            cam_url = "http://136.142.166.244/-wvhttp-01-/GetOneShot?"  # it's a VB60
+            # cam_url = "http://136.142.166.244/-wvhttp-01-/GetOneShot?"  # it's a VB60
             cam_html = "<!DOCTYPE html><meta http-equiv='X-UA-Compatible' content='IE=edge' /><html><head></head>" \
                        "<body style='margin: 0px; overflow: hidden;'><img alt='Camera Offline'" \
                 f" {image_size_str} src='{cam_url}'/></body></html>"
@@ -1953,7 +1953,7 @@ class MainFrame(wx.Frame):
         # opens a web browser to the UWA Venue Timetable  page
         progstring = prefs_dict["main_browser"]
         # ipstring = prefs_dict["echo_monitor_url"]    # todo add web addresses to preferences and settings
-        ipstring = "http://login.echo360.org/"
+        ipstring = "echo360.org"
         _launch_main_browser2(progstring, ipstring)
 
     def workbench_menu_evt(self, _):

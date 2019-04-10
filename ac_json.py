@@ -150,7 +150,7 @@ def build_icandi_json():
                         venue["name"] = fields.get("Venue Name", "MISSING")
                         venue["code"] = fields.get("Room code", "MISSING")
                         venue["building"] = fields.get("_Building", "Unknown")
-                        venue["bookingid"] = fields.get("Booking ID", "")
+                        venue["bookingid"] = fields.get("Booking ID", "")   # Callista code
                         venue["aka"] = fields.get("AKA", "")
                         venue["capacity"] = int(fields.get("Capacity", 0))
                         venue["group"] = fields.get("Group", "Unknown")

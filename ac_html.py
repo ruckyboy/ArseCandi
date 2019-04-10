@@ -10,7 +10,7 @@ import ac_json
 
 def timetable_html(sims_id, venue):
     today_iso = datetime.now().date()
-    current_year, current_week, _ = today_iso.isocalendar()
+    current_year, current_week, current_day = today_iso.isocalendar()
     cw_monday = datetime.strptime(f'{current_year}-{current_week}-1', "%G-%V-%u").strftime('%d/%m/%Y')
     cw_sunday = datetime.strptime(f'{current_year}-{current_week}-7', "%G-%V-%u").strftime('%d/%m/%Y')
 
@@ -30,7 +30,10 @@ def timetable_html(sims_id, venue):
     html_str = "<!DOCTYPE html><meta http-equiv='X-UA-Compatible' content='IE=edge' />\r<html>\r<head></head>\r<body>\r"
     html_str += f'<p>{venue}: Bookings for week {current_week}, commencing {cw_monday}</p>\r'
     for i in range(7):
-        html_str += f'<p>\r{days_lst[i]}<br/>\r'
+        if current_day == i+1:
+            html_str += f'<p style="background:#fff5e6">\r{days_lst[i]}<br/>\r'
+        else:
+            html_str += f'<p>\r{days_lst[i]}<br/>\r'
         for booking in view_list[i]:
             html_str += f'{booking[0]} &nbsp; {booking[1]}<br/>\r'
         html_str += '</p>\r'
