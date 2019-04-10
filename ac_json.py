@@ -157,7 +157,7 @@ def build_icandi_json():
                         venue["phone"] = str(fields.get("Phone", "Unknown"))
                         venue["ctf"] = "Yes" if fields.get("CTF") else "No"  # AirTable stored as boolean
                         venue["cardax"] = "Yes" if fields.get("Cardax") else "No"  # AirTable stored as boolean
-                        venue["notes"] = fields.get("Notes", "")
+                        venue["notes"] = fields.get("_Notes", "")
                         venue["pc"] = fields.get("_PC", "")
                         venue["radmicfreq"] = fields.get("_Radio Mic Frequency", "")
                         venue["webcam"] = fields.get("_WebCam", "")

@@ -513,31 +513,31 @@ class VenuesPanel(wx.Panel):
 
         if not right_click:
             progstring = prefs_dict["main_browser"]
-            self._launch_main_browser(progstring, ipstring)
+            _launch_main_browser(progstring, ipstring)
         else:
             progstring = prefs_dict["alt_browser"]
-            self._launch_alt_browser(progstring, ipstring)
+            _launch_alt_browser(progstring, ipstring)
 
-    def _launch_main_browser(self, progstring, ipstring, new_window=False):
-        try:
-            if new_window:
-                subprocess.Popen([progstring, "--window-size=1024,768", "--new-window", ipstring])
-                # opens chrome with new window at address passed, if Chrome is already open it ignores sizing flags :(
-            else:
-                subprocess.Popen([progstring, "--window-size=1024,768", ipstring])  # new tab
-        except OSError as e:
-            print("Browser failed to run:", e)
-            msg_warn(self, f"Browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
+    # def _launch_main_browser(self, progstring, ipstring, new_window=False):
+    #     try:
+    #         if new_window:
+    #             subprocess.Popen([progstring, "--window-size=1024,768", "--new-window", ipstring])
+    #             # opens chrome with new window at address passed, if Chrome is already open it ignores sizing flags :(
+    #         else:
+    #             subprocess.Popen([progstring, "--window-size=1024,768", ipstring])  # new tab
+    #     except OSError as e:
+    #         print("Browser failed to run:", e)
+    #         msg_warn(self, f"Browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
 
-    def _launch_alt_browser(self, progstring, ipstring):
-        try:
-            subprocess.Popen([progstring, ipstring])
-            # opens ie with new window at address passed
-        except OSError as e:
-            print("Alternative browser failed to run:", e)
-            msg_warn(self, f"Alternative browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
-
-    """ chrome switches: https://www.ghacks.net/2013/10/06/list-useful-google-chrome-command-line-switches/"""
+    # def _launch_alt_browser(self, progstring, ipstring):
+    #     try:
+    #         subprocess.Popen([progstring, ipstring])
+    #         # opens ie with new window at address passed
+    #     except OSError as e:
+    #         print("Alternative browser failed to run:", e)
+    #         msg_warn(self, f"Alternative browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
+    #
+    # """ chrome switches: https://www.ghacks.net/2013/10/06/list-useful-google-chrome-command-line-switches/"""
 
     def btn_vnc_evt(self, _):
         # opens a VNC session for AMX touchpanels
@@ -599,7 +599,7 @@ class VenuesPanel(wx.Panel):
                 ipstring = self.device_olv.GetItemText(row, 0)
                 extension = self.device_olv.GetItemText(row, 3)  # The extension column is not visually present in olv
                 full_ipstring = f'https://{ipstring}/web/vtlp/{extension}/vtlp.html'
-                self._launch_main_browser(progstring, full_ipstring)
+                _launch_main_browser(progstring, full_ipstring)
                 break
             elif "Touch Panel" in (self.device_olv.GetItemText(row, 1)):
                 progstring = prefs_dict["vnc"]
@@ -634,7 +634,7 @@ class VenuesPanel(wx.Panel):
             if "[Echo 360]" in (self.device_olv.GetItemText(row, 1)):
                 ipstring = self.device_olv.GetItemText(row, 0)
                 full_ipstring = f'https://admin:password@{ipstring}/advanced'
-                self._launch_main_browser(progstring, full_ipstring)
+                _launch_main_browser(progstring, full_ipstring)
                 break
 
     def webv_webcam_err_evt(self, event):
@@ -724,7 +724,7 @@ class VenuesPanel(wx.Panel):
         progstring = prefs_dict["main_browser"]
         airtable_prefix_string = prefs_dict["airtable_web"]
         ipstring = f'{airtable_prefix_string}/{venue_record}'
-        self._launch_main_browser(progstring, ipstring, right_click)
+        _launch_main_browser(progstring, ipstring, right_click)
 
     def btn_asana_evt(self, event):
         # opens a web browser to the venue's Asana tasks
@@ -738,7 +738,7 @@ class VenuesPanel(wx.Panel):
         progstring = prefs_dict["main_browser"]
         asana_prefix_string = "https://app.asana.com/0/"
         ipstring = f'{asana_prefix_string}{venue_record}'
-        self._launch_main_browser(progstring, ipstring, right_click)
+        _launch_main_browser(progstring, ipstring, right_click)
 
     def btn_websis_evt(self, event):
         # opens a web browser to venue's websis page
@@ -752,7 +752,7 @@ class VenuesPanel(wx.Panel):
         progstring = prefs_dict["main_browser"]
         websis_prefix_string = "http://sisfm-enquiry.fm.uwa.edu.au/sisfm-enquiry/mapEnquiry/default.aspx?loc_code="
         ipstring = f'{websis_prefix_string}{venue_record}'
-        self._launch_main_browser(progstring, ipstring, right_click)
+        _launch_main_browser(progstring, ipstring, right_click)
 
     def btn_timetable_evt(self, event):
         # opens a new frame for venue's timetable (grid and list views)
@@ -1938,23 +1938,20 @@ class MainFrame(wx.Frame):
     def timetable_menu_evt(self, _):
         # opens a web browser to the UWA Venue Timetable page
         progstring = prefs_dict["main_browser"]
-        # ipstring = prefs_dict["timetable_url"]    # todo add web addresses to preferences and settings
-        ipstring = "http://timetable.applications.uwa.edu.au/venue.html?"
-        _launch_main_browser2(progstring, ipstring)
+        ipstring = prefs_dict["timetable_url"]
+        _launch_main_browser(progstring, ipstring)
 
     def booker_menu_evt(self, _):
         # opens a web browser to the UWA Resource Booker page
         progstring = prefs_dict["main_browser"]
-        # ipstring = prefs_dict["res_booker_url"]    # todo add web addresses to preferences and settings
-        ipstring = "https://resourcebooker.uwa.edu.au/#/app/booking-types"
-        _launch_main_browser2(progstring, ipstring)
+        ipstring = prefs_dict["res_booker_url"]
+        _launch_main_browser(progstring, ipstring)
 
     def echo_menu_evt(self, _):
         # opens a web browser to the UWA Venue Timetable  page
         progstring = prefs_dict["main_browser"]
-        # ipstring = prefs_dict["echo_monitor_url"]    # todo add web addresses to preferences and settings
-        ipstring = "echo360.org"
-        _launch_main_browser2(progstring, ipstring)
+        ipstring = prefs_dict["echo_monitor_url"]
+        _launch_main_browser(progstring, ipstring)
 
     def workbench_menu_evt(self, _):
         progstring = prefs_dict["shure"]
@@ -2129,7 +2126,12 @@ def msg_warn(parent, message, caption="Warning!"):
     dlg.Destroy()
 
 
-def _launch_main_browser2(progstring, ipstring, new_window=False):
+"""
+### Launch external apps 
+"""
+
+
+def _launch_main_browser(progstring, ipstring, new_window=False):
     try:
         if new_window:
             subprocess.Popen([progstring, "--window-size=1024,768", "--new-window", ipstring])
@@ -2139,6 +2141,18 @@ def _launch_main_browser2(progstring, ipstring, new_window=False):
     except OSError as e:
         print("Browser failed to run:", e)
         msg_warn(MainFrame, f"Browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
+
+
+def _launch_alt_browser(progstring, ipstring):
+    try:
+        subprocess.Popen([progstring, ipstring])
+        # opens ie (or firefox) with new window at address passed
+    except OSError as e:
+        print("Alternative browser failed to run:", e)
+        msg_warn(MainFrame, f"Alternative browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
+
+
+""" chrome switches: https://www.ghacks.net/2013/10/06/list-useful-google-chrome-command-line-switches/"""
 
 
 def bg_refresh_permitted(new_data=False):
