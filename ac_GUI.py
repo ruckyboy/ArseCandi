@@ -2012,9 +2012,7 @@ class MainFrame(wx.Frame):
             self.main_panel.olv_venue_focusselect(0)
         else:
             s_obj = self.main_panel.venue_olv.GetSelectedObject()
-            print(s_obj)
             i_obj = self.main_panel.venue_olv.GetIndexOf(s_obj)
-            print(i_obj)
             self.main_panel.venue_olv.EnsureCellVisible(i_obj, 0)
 
         current_time = time.strftime('%d %b %Y %H:%M:%S', time.localtime())

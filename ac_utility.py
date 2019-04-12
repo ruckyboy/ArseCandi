@@ -141,7 +141,8 @@ DEFAULT_PREFS = {
     "dameware": "C:\\Program Files\\SolarWinds\\DameWare Mini Remote Control 10.0 x64\\DWRCC.exe",
     "shure": "C:\\Program Files\\shure\\wireless workbench 6\\Wireless Workbench 6.exe",
     "vnc": "C:\\Program Files\\uvnc bvba\\UltraVNC\\vncviewer.exe",
-    "telnet": "\\bin\\telnetUltra.exe",
+    "telnet": "C:\\Windows\\WinSxS\\"
+              "amd64_microsoft-windows-telnet-client_31bf3856ad364e35_10.0.17134.1_none_9db21dbc8e34d070\\telnet.exe",
     "timetable_url": "http://timetable.applications.uwa.edu.au/venue.html?",
     "res_booker_url": "https://resourcebooker.uwa.edu.au/#/app/booking-types",
     "echo_monitor_url": "echo360.org",
@@ -219,31 +220,52 @@ def reboot_via_telnet(ip="rainmaker.wunderground.com", user=None, password=None)
         print("Running DGX script")
 
     ret_str = ""  # ret_str is built up of all responses and inputs during the session
+    # ip = "rainmaker.wunderground.com"
     with Telnet(ip) as tn:
 
-        strg = tn.read_until(b"to continue:").decode('ascii')
+        strg = tn.read_until(b">", 3).decode('ascii')
         print(strg)
         ret_str += strg
         # inp = input("?")
-        inp = ""
-        tn.write(inp.encode('ascii') + b"\n")
-        strg = tn.read_until(b"code--").decode('ascii')
-        print(strg)
-        ret_str += strg
-        # inp = input("?")
-        inp = ""
-        tn.write(inp.encode('ascii') + b"\n")
-
-        while inp != "x":
-            strg = tn.read_until(b"Selection:", 2).decode('ascii')
-            print(strg)
-            ret_str += strg
-            inp = input("?")
-            tn.write(inp.encode('ascii') + b"\n")
-            ret_str += inp + "\n"
-
         time.sleep(1)
-        tn.write(inp.encode('ascii') + b"\n")
+        inp = "reboot"
+        tn.write(inp.encode('ascii') + b"\r")
+        strg = tn.read_until(b">", 3).decode('ascii')
+        print(strg)
+        ret_str += strg
+        time.sleep(1)
+        tn.write(b"\r")
+
+        # print(strg)
+        # ret_str += strg
+        # # inp = input("?")
+        # inp = ""
+        # tn.write(inp.encode('ascii') + b"\n")
+
+        # ###### rainmaker test script
+        # strg = tn.read_until(b"to continue:").decode('ascii')
+        # print(strg)
+        # ret_str += strg
+        # # inp = input("?")
+        # inp = ""
+        # tn.write(inp.encode('ascii') + b"\n")
+        # strg = tn.read_until(b"code--").decode('ascii')
+        # print(strg)
+        # ret_str += strg
+        # # inp = input("?")
+        # inp = ""
+        # tn.write(inp.encode('ascii') + b"\n")
+        #
+        # while inp != "x":
+        #     strg = tn.read_until(b"Selection:", 2).decode('ascii')
+        #     print(strg)
+        #     ret_str += strg
+        #     inp = input("?")
+        #     tn.write(inp.encode('ascii') + b"\n")
+        #     ret_str += inp + "\n"
+        #
+        # time.sleep(1)
+        # tn.write(inp.encode('ascii') + b"\n")
 
     return ret_str
 
@@ -335,4 +357,3 @@ if __name__ == '__main__':
     print(a)
     print(b)
     print(c)
-
