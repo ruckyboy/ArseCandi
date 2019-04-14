@@ -65,6 +65,8 @@ class VenuesPanel(wx.Panel):
 
         self.timer = wx.Timer(self)
 
+        self.last_device = None   # keeping track of tooltip messages to prevent flicker
+
         """
         ### Initiate empty framework for GUI elements
         """
@@ -127,7 +129,6 @@ class VenuesPanel(wx.Panel):
         self.venue_olv.SetEmptyListMsg("No matching venues")
         self.venue_olv.SetEmptyListMsgColors(wx.WHITE, wx.Colour(COLOUR_EVEN_LISTROW))
 
-        # self.venue_olv.rowFormatter = self.rowFormatter
         venues_section_sizer.Add(self.venue_olv, 1, wx.ALL | wx.EXPAND, 5)
 
         """ Venues List Count Label """
@@ -158,8 +159,8 @@ class VenuesPanel(wx.Panel):
         self.device_olv.SetColumns([
             ColumnDefn("Address", "left", -1, 1, fixedWidth=105, isSearchable=False),
             ColumnDefn("Device", "left", -1, 0, minimumWidth=140, isSpaceFilling=True, isSearchable=False),
-            ColumnDefn("Ping", "right", -1, "ping", fixedWidth=110, isSearchable=False),
-            ColumnDefn("_Ext_", "left", 0, 2, maximumWidth=0, isSearchable=False)])
+            ColumnDefn("Ping", "right", -1, "ping", fixedWidth=110, isSearchable=False)])
+            # ColumnDefn("_Ext_", "left", 0, 2, maximumWidth=0, isSearchable=False)])  # Todo remove after live testing
         # Ping is a generated result
         self.device_olv.SetBackgroundColour(COLOUR_EVEN_LISTROW)
         self.device_olv.evenRowsBackColor = wx.Colour(COLOUR_EVEN_LISTROW)
@@ -167,8 +168,7 @@ class VenuesPanel(wx.Panel):
         self.device_olv.SetEmptyListMsg("No devices")
         self.device_olv.SetEmptyListMsgColors(wx.WHITE, wx.Colour(COLOUR_EVEN_LISTROW))
 
-        # self.device_olv.rowFormatter(rowFormatter)  # TODO consider formatting cell dependant on ping result
-        self.device_olv.SetMinSize(wx.Size(352, 325))
+        self.device_olv.SetMinSize(wx.Size(355, 325))
 
         device_list_sizer.Add(self.device_olv, 2, wx.ALL | wx.EXPAND, 0)
 
@@ -266,9 +266,9 @@ class VenuesPanel(wx.Panel):
         """ Cam viewer window spacer left """
         webcam_sizer.Add((0, 0), 1, wx.EXPAND)  # For horizontally aligning webcam viewer within webcam_sizer
 
-        self.cam_viewer = wx.html2.WebView.New(self, wx.ID_ANY, size=wx.Size(362, 245))
-        self.cam_viewer.SetMinSize((352, 230))
-        self.cam_viewer.SetMaxSize((352, 230))
+        self.cam_viewer = wx.html2.WebView.New(self, wx.ID_ANY, size=wx.Size(355, 230))
+        self.cam_viewer.SetMinSize((355, 230))
+        self.cam_viewer.SetMaxSize((355, 230))
         self.cam_viewer.EnableHistory(False)
         # self.tt_viewer.Enable(False)
         webcam_sizer.Add(self.cam_viewer, 0, wx.ALL | wx.CENTER, 5)
@@ -463,6 +463,7 @@ class VenuesPanel(wx.Panel):
         self.ctf_filter_ckb.Bind(wx.EVT_CHECKBOX, self.ckb_venues_filter_by_ctf_evt)
         self.controlled_filter_ckb.Bind(wx.EVT_CHECKBOX, self.ckb_venues_filter_by_control_evt)
         self.device_olv.Bind(wx.EVT_LIST_ITEM_SELECTED, self.olv_device_selected_evt)
+        self.device_olv.Bind(wx.EVT_MOTION, self.olv_device_update_tooltip)
         self.flagged_ckb.Bind(wx.EVT_CHECKBOX, self.ckb_device_filter_toggle_evt)
         self.autoping_btn.Bind(wx.EVT_TOGGLEBUTTON, self.btn_autoping_toggle_evt)
         self.ping_btn.Bind(wx.EVT_BUTTON, self.btn_ping_evt)
@@ -490,14 +491,6 @@ class VenuesPanel(wx.Panel):
 
         self.device_olv.Select(0)  # only needed to trigger device button formatting when app first started
 
-    # TODO remove - just a sample of row formatting
-    # def rowFormatter(self, list_row, olv):
-    #     if olv["aka"] == "ALR4":
-    #         list_row.SetTextColour(wx.RED)
-    #         list_row.SetBackgroundColour(wx.LIGHT_GREY)
-    #         list_row.SetFont(wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False,
-    #                                  "Segoe UI Semibold"))
-
     """
     ### Venues Panel Class -  event handlers 
     """
@@ -517,27 +510,6 @@ class VenuesPanel(wx.Panel):
         else:
             progstring = prefs_dict["alt_browser"]
             _launch_alt_browser(progstring, ipstring)
-
-    # def _launch_main_browser(self, progstring, ipstring, new_window=False):
-    #     try:
-    #         if new_window:
-    #             subprocess.Popen([progstring, "--window-size=1024,768", "--new-window", ipstring])
-    #             # opens chrome with new window at address passed, if Chrome is already open it ignores sizing flags :(
-    #         else:
-    #             subprocess.Popen([progstring, "--window-size=1024,768", ipstring])  # new tab
-    #     except OSError as e:
-    #         print("Browser failed to run:", e)
-    #         msg_warn(self, f"Browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
-
-    # def _launch_alt_browser(self, progstring, ipstring):
-    #     try:
-    #         subprocess.Popen([progstring, ipstring])
-    #         # opens ie with new window at address passed
-    #     except OSError as e:
-    #         print("Alternative browser failed to run:", e)
-    #         msg_warn(self, f"Alternative browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
-    #
-    # """ chrome switches: https://www.ghacks.net/2013/10/06/list-useful-google-chrome-command-line-switches/"""
 
     def btn_vnc_evt(self, _):
         # opens a VNC session for AMX touchpanels
@@ -583,10 +555,9 @@ class VenuesPanel(wx.Panel):
         if dlg == wx.YES:
             # TODO reinstate below for uwa use
             ipstring = self.device_olv.GetSelectedObject()[1]
-            # ipstring = "rainmaker.wunderground.com"  # Placeholder
             response = ac_utility.reboot_via_telnet(ipstring, user, pwd)
 
-            MultiMessageBox(f'{venue_name} : {device_type}', "Telnet Session Details...", response)
+            MultiMessageBox(f'{venue_name} : {device_type}  [{ipstring}]', "Telnet Session Details...", response)
 
         pass
 
@@ -805,6 +776,31 @@ class VenuesPanel(wx.Panel):
             self.populate_camview(current_venue)
 
         # event.Skip()  # Contrary to the name, event.Skip() ensures other event calls ARE executed if needed
+
+    def olv_device_update_tooltip(self, event):
+        """
+        Update the tooltip on the device objectlistview
+        """
+        pos = wx.GetMousePosition()
+        mouse_pos = self.device_olv.ScreenToClient(pos)
+        item_index, flag = self.device_olv.HitTest(mouse_pos)
+        if item_index != -1:
+            current_device = self.device_olv.GetObjectAt(item_index)
+            if current_device != self.last_device:
+                self.last_device = current_device
+                try:
+                    cd_dp = current_device[3]
+                    cd_vlan = current_device[4]
+                    cd_notes = current_device[5]
+                    msg = f"DP: {cd_dp}\nVLAN: {cd_vlan}\n{cd_notes}"
+                    self.device_olv.SetToolTip(msg)
+                except IndexError:
+                    self.device_olv.SetToolTip("")
+                    # Todo - currently webcam echo and PC don't have the above fields
+        else:
+            self.device_olv.SetToolTip("")
+
+        event.Skip()
 
     def olv_device_selected_evt(self, _):
         """ This method just enables buttons dependant on the selected device """
@@ -1051,7 +1047,7 @@ class VenuesPanel(wx.Panel):
             if cam_image:
                 cam_html = "<!DOCTYPE html><meta http-equiv='X-UA-Compatible' content='IE=edge' /><html><head>" \
                            "<style type='text/css'>" \
-                           "div{height: 210px; width: 328px; display: inline-block; " \
+                           "div{height: 210px; width: 335px; display: inline-block; " \
                            "vertical-align: top; position: relative;} " \
                            "video{max-height: 100%; max-width: 100%; width: auto; height: auto; " \
                            "position: absolute; top: 0; bottom: 0; left: 0; right: 0; margin: auto;}</style>" \

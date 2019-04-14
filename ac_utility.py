@@ -6,6 +6,7 @@ from random import randrange
 import time
 from datetime import datetime
 from telnetlib import Telnet
+from telnetlib import socket
 from wx import Display as Display
 
 """
@@ -216,43 +217,88 @@ def _set_default_preferences(file_location):
 
 
 def reboot_via_telnet(ip="rainmaker.wunderground.com", user=None, password=None):
+    """
+    Function to reboot AMX devices over telnet
+
+    :param ip: str: Host name or IP address
+    :param user: str:   logon name
+    :param password: str:   logon password
+                            If name and password are passed, assumes logging into DGX
+    :return: str:   Captured interaction with host
+    """
+    # \r = carriage return; \n = line feed; \r\n = carriage return line feed (CRLF)
+    # 'Enter' requirements are dependant on the 'server'; AMX accepts \r
+
+    # ip = "rainmaker.wunderground.com"        # accepts \n as 'Enter'  test public accessible telnet host
+
+    ret_str = "#" * 50 + '\r\n\r\n'  # ret_str is built up of all responses and inputs during the session
+
+    # todo test DGX reboot > live
     if user and password:
         print("Running DGX script")
+        try:
+            with Telnet(ip, timeout=3) as tn:
+                response_str = tn.read_until(b"user:", 3).decode('ascii')
+                ret_str += response_str + "\r\n"
+                print(ret_str)
+                time.sleep(1)
+                inp = "administrator"
+                ret_str += f'\t{inp} \r\n'
+                tn.write(inp.encode('ascii') + b"\r")
+                response_str = tn.read_until(b"password:", 3).decode('ascii')
+                ret_str += response_str + "\r\n"
+                print(ret_str)
+                time.sleep(1)
+                inp = "password"
+                ret_str += f'\t{inp} \r\n'
+                tn.write(inp.encode('ascii') + b"\r")
+                response_str = tn.read_until(b">", 3).decode('ascii')
+                ret_str += response_str + "\r\n"
+                print(ret_str)
+                time.sleep(1)
+                inp = "reboot"
+                ret_str += f'\t{inp} \r\n'
+                tn.write(inp.encode('ascii') + b"\r")
+                response_str = tn.read_until(b">", 3).decode('ascii')
+                ret_str += response_str + "\r\n"
+                print(ret_str)
+                time.sleep(1)
+                tn.write(b"\r")
+        except (TimeoutError, socket.timeout):
+            # import sys        # These 3 lines are a good way to discover the exception/s raised
+            # exc_info = sys.exc_info()
+            # print(exc_info)
+            print("Could not connect to host")
+            ret_str += f"Could not connect to {ip} \r\n"
 
-    ret_str = ""  # ret_str is built up of all responses and inputs during the session
-    # ip = "rainmaker.wunderground.com"
-    with Telnet(ip) as tn:
-
-        strg = tn.read_until(b">", 3).decode('ascii')
-        print(strg)
-        ret_str += strg
-        # inp = input("?")
-        time.sleep(1)
-        inp = "reboot"
-        tn.write(inp.encode('ascii') + b"\r")
-        strg = tn.read_until(b">", 3).decode('ascii')
-        print(strg)
-        ret_str += strg
-        time.sleep(1)
-        tn.write(b"\r")
-
-        # print(strg)
-        # ret_str += strg
-        # # inp = input("?")
-        # inp = ""
-        # tn.write(inp.encode('ascii') + b"\n")
+    else:
+        try:
+            with Telnet(ip, timeout=3) as tn:
+                response_str = tn.read_until(b">", 3).decode('ascii')
+                ret_str += response_str + "\r\n"
+                print(ret_str)
+                time.sleep(1)
+                inp = "reboot"
+                ret_str += f'\t{inp} \r\n'
+                tn.write(inp.encode('ascii') + b"\r")
+                response_str = tn.read_until(b">", 3).decode('ascii')
+                ret_str += response_str + "\r\n"
+                print(ret_str)
+                time.sleep(1)
+                tn.write(b"\r")
+        except (TimeoutError, socket.timeout):
+            print("Could not connect to host")
+            ret_str += f"Could not connect to {ip} \r\n"
 
         # ###### rainmaker test script
         # strg = tn.read_until(b"to continue:").decode('ascii')
         # print(strg)
         # ret_str += strg
-        # # inp = input("?")
         # inp = ""
         # tn.write(inp.encode('ascii') + b"\n")
         # strg = tn.read_until(b"code--").decode('ascii')
         # print(strg)
         # ret_str += strg
-        # # inp = input("?")
         # inp = ""
         # tn.write(inp.encode('ascii') + b"\n")
         #
@@ -267,6 +313,7 @@ def reboot_via_telnet(ip="rainmaker.wunderground.com", user=None, password=None)
         # time.sleep(1)
         # tn.write(inp.encode('ascii') + b"\n")
 
+    ret_str += "\r\n" + "#" * 50 + "\r\n"
     return ret_str
 
 
