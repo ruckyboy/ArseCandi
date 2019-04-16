@@ -65,7 +65,7 @@ class VenuesPanel(wx.Panel):
 
         self.timer = wx.Timer(self)
 
-        self.last_device = None   # keeping track of tooltip messages to prevent flicker
+        self.last_device = None  # keeping track of tooltip messages to prevent flicker
 
         """
         ### Initiate empty framework for GUI elements
@@ -158,9 +158,8 @@ class VenuesPanel(wx.Panel):
                                          sortable=False, style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.NO_BORDER)
         self.device_olv.SetColumns([
             ColumnDefn("Address", "left", -1, 1, fixedWidth=105, isSearchable=False),
-            ColumnDefn("Device", "left", -1, 0, minimumWidth=140, isSpaceFilling=True, isSearchable=False),
-            ColumnDefn("Ping", "right", -1, "ping", fixedWidth=110, isSearchable=False)])
-            # ColumnDefn("_Ext_", "left", 0, 2, maximumWidth=0, isSearchable=False)])  # Todo remove after live testing
+            ColumnDefn("Device", "left", -1, 0, minimumWidth=150, isSpaceFilling=True, isSearchable=False),
+            ColumnDefn("Ping", "right", -1, "ping", fixedWidth=100, isSearchable=False)])
         # Ping is a generated result
         self.device_olv.SetBackgroundColour(COLOUR_EVEN_LISTROW)
         self.device_olv.evenRowsBackColor = wx.Colour(COLOUR_EVEN_LISTROW)
@@ -168,7 +167,7 @@ class VenuesPanel(wx.Panel):
         self.device_olv.SetEmptyListMsg("No devices")
         self.device_olv.SetEmptyListMsgColors(wx.WHITE, wx.Colour(COLOUR_EVEN_LISTROW))
 
-        self.device_olv.SetMinSize(wx.Size(355, 325))
+        self.device_olv.SetMinSize(wx.Size(365, 325))
 
         device_list_sizer.Add(self.device_olv, 2, wx.ALL | wx.EXPAND, 0)
 
@@ -264,7 +263,7 @@ class VenuesPanel(wx.Panel):
         webcam_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         """ Cam viewer window spacer left """
-        webcam_sizer.Add((0, 0), 1, wx.EXPAND)  # For horizontally aligning webcam viewer within webcam_sizer
+        webcam_sizer.Add((1, 0), 1, wx.EXPAND)  # For horizontally aligning webcam viewer within webcam_sizer
 
         self.cam_viewer = wx.html2.WebView.New(self, wx.ID_ANY, size=wx.Size(355, 230))
         self.cam_viewer.SetMinSize((355, 230))
@@ -274,7 +273,7 @@ class VenuesPanel(wx.Panel):
         webcam_sizer.Add(self.cam_viewer, 0, wx.ALL | wx.CENTER, 5)
 
         """ Cam viewer window spacer right """
-        webcam_sizer.Add((0, 0), 1, wx.EXPAND)  # For horizontally aligning webcam viewer within webcam_sizer
+        webcam_sizer.Add((1, 0), 1, wx.EXPAND)  # For horizontally aligning webcam viewer within webcam_sizer
 
         """ WebCam buttons """
         self.webcam_button_line = wx.StaticLine(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_VERTICAL)
@@ -282,17 +281,21 @@ class VenuesPanel(wx.Panel):
 
         webcam_buttons_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.webcam_refresh_btn = wx.ToggleButton(self, wx.ID_ANY, "Monitor", wx.DefaultPosition, wx.Size(112, -1),
+        self.webcam_refresh_btn = wx.ToggleButton(self, wx.ID_ANY, "Monitor", wx.DefaultPosition, wx.DefaultSize,
                                                   wx.NO_BORDER)
         apply_button_template(self.webcam_refresh_btn)
-        webcam_buttons_sizer.Add(self.webcam_refresh_btn, 0, wx.ALL | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+
+        self.webcam_refresh_btn.SetMinSize(wx.Size(110, -1))
+        webcam_buttons_sizer.Add(self.webcam_refresh_btn, 0,
+                                 wx.LEFT | wx.TOP | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
 
         self.webcam_open_btn = wx.Button(self, wx.ID_ANY, "Camera Type", wx.DefaultPosition, wx.DefaultSize,
                                          wx.NO_BORDER)
         self.webcam_open_btn.SetToolTip("Open camera with browser\n(Right click opens in viewer)")
         apply_button_template(self.webcam_open_btn)
-        self.webcam_open_btn.SetMinSize(wx.Size(112, -1))
-        webcam_buttons_sizer.Add(self.webcam_open_btn, 0, wx.ALL | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+        self.webcam_open_btn.SetMinSize(wx.Size(110, -1))
+        webcam_buttons_sizer.Add(self.webcam_open_btn, 0,
+                                 wx.LEFT | wx.TOP | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
 
         webcam_sizer.Add(webcam_buttons_sizer, 1, wx.ALIGN_RIGHT, 5)
 
@@ -343,10 +346,10 @@ class VenuesPanel(wx.Panel):
         """ Venue Other Details """
         details_fields_sizer = wx.FlexGridSizer(7, 2, 0, 0)
 
-        self.building_name_label = wx.StaticText(dss_gsb, wx.ID_ANY, "Building", wx.DefaultPosition, wx.Size(-1, 42),
+        self.building_name_label = wx.StaticText(dss_gsb, wx.ID_ANY, "Building", wx.DefaultPosition, wx.Size(-1, -1),
                                                  wx.TE_RIGHT | wx.NO_BORDER)
         self.building_name_text = wx.TextCtrl(dss_gsb, wx.ID_ANY, "?", wx.DefaultPosition, wx.Size(-1, -1),
-                                              wx.TE_READONLY | wx.NO_BORDER | wx.TE_MULTILINE | wx.TE_NO_VSCROLL)
+                                              wx.TE_READONLY | wx.NO_BORDER)
 
         self.room_number_label = wx.StaticText(dss_gsb, wx.ID_ANY, "Room No.", wx.DefaultPosition, wx.Size(-1, -1),
                                                wx.TE_RIGHT | wx.NO_BORDER)
@@ -368,11 +371,6 @@ class VenuesPanel(wx.Panel):
         self.phone_text = wx.TextCtrl(dss_gsb, wx.ID_ANY, "?", wx.DefaultPosition, wx.DefaultSize,
                                       wx.TE_READONLY | wx.NO_BORDER)
 
-        self.radio_mic_label = wx.StaticText(dss_gsb, wx.ID_ANY, "Radio Mic", wx.DefaultPosition, wx.Size(-1, -1),
-                                             wx.TE_RIGHT | wx.NO_BORDER)
-        self.radio_mic_text = wx.TextCtrl(dss_gsb, wx.ID_ANY, "?", wx.DefaultPosition, wx.Size(-1, -1),
-                                          wx.TE_READONLY | wx.NO_BORDER)
-
         self.sdc_label = wx.StaticText(dss_gsb, wx.ID_ANY, "SDC Area", wx.DefaultPosition, wx.Size(-1, -1),
                                        wx.TE_RIGHT | wx.NO_BORDER)
         self.sdc_text = wx.TextCtrl(dss_gsb, wx.ID_ANY, "?", wx.DefaultPosition, wx.Size(-1, -1),
@@ -383,7 +381,6 @@ class VenuesPanel(wx.Panel):
                              self.capacity_text,
                              self.ctf_text,
                              self.phone_text,
-                             self.radio_mic_text,
                              self.sdc_text]
 
         details_labels_list = [self.building_name_label,
@@ -391,7 +388,6 @@ class VenuesPanel(wx.Panel):
                                self.capacity_label,
                                self.ctf_label,
                                self.phone_label,
-                               self.radio_mic_label,
                                self.sdc_label]
 
         for label in details_labels_list:
@@ -409,7 +405,6 @@ class VenuesPanel(wx.Panel):
             (self.capacity_label, *ds_label_params), (self.capacity_text, *ds_text_params),
             (self.ctf_label, *ds_label_params), (self.ctf_text, *ds_text_params),
             (self.phone_label, *ds_label_params), (self.phone_text, *ds_text_params),
-            (self.radio_mic_label, *ds_label_params), (self.radio_mic_text, *ds_text_params),
             (self.sdc_label, *ds_label_params), (self.sdc_text, *ds_text_params),
         ])
 
@@ -814,7 +809,7 @@ class VenuesPanel(wx.Panel):
             apply_button_template(self.telnet_btn)
         else:
             apply_button_template(self.telnet_btn, "disabled")
-        if current_device.startswith(("iBoo", "LCD", "Cam", "Data", "Dis", "Pro", "WeP", "Extr")):
+        if current_device.startswith(("iBoo", "LCD", "Cam", "Data", "Dis", "Pro", "WeP", "Extr", "DP ")):
             apply_button_template(self.webcontrol_btn)
         else:
             apply_button_template(self.webcontrol_btn, "disabled")
@@ -992,10 +987,6 @@ class VenuesPanel(wx.Panel):
         self.capacity_text.SetValue(str(venue["capacity"]))
         self.ctf_text.SetValue(venue["ctf"])
         self.phone_text.SetValue(venue["phone"])
-        if venue["radmicfreq"]:
-            self.radio_mic_text.SetValue("  ".join(venue["radmicfreq"]))
-        else:
-            self.radio_mic_text.SetValue("")
         self.sdc_text.SetValue(venue["sdc"])
         self.notes_text.SetValue(venue["notes"])
 
