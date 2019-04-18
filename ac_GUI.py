@@ -554,7 +554,6 @@ class VenuesPanel(wx.Panel):
 
             MultiMessageBox(f'{venue_name} : {device_type}  [{ipstring}]', "Telnet Session Details...", response)
 
-        pass
 
     def btn_touchpanel_evt(self, _):
         # opens a vnc or web session for the first listed venue touch-panel (depending on AMX or Extron type)

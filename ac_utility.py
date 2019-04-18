@@ -240,28 +240,28 @@ def reboot_via_telnet(ip="rainmaker.wunderground.com", user=None, password=None)
             with Telnet(ip, timeout=3) as tn:
                 response_str = tn.read_until(b"user:", 3).decode('ascii')
                 ret_str += response_str + "\r\n"
-                print(ret_str)
+                # print(ret_str)
                 time.sleep(1)
                 inp = "administrator"
-                ret_str += f'\t{inp} \r\n'
+                ret_str += f'\t->{inp} \r\n'
                 tn.write(inp.encode('ascii') + b"\r")
                 response_str = tn.read_until(b"password:", 3).decode('ascii')
                 ret_str += response_str + "\r\n"
-                print(ret_str)
+                # print(ret_str)
                 time.sleep(1)
                 inp = "password"
-                ret_str += f'\t{inp} \r\n'
+                ret_str += f'\t->{inp} \r\n'
                 tn.write(inp.encode('ascii') + b"\r")
                 response_str = tn.read_until(b">", 3).decode('ascii')
                 ret_str += response_str + "\r\n"
-                print(ret_str)
+                # print(ret_str)
                 time.sleep(1)
                 inp = "reboot"
-                ret_str += f'\t{inp} \r\n'
+                ret_str += f'\t->{inp} \r\n'
                 tn.write(inp.encode('ascii') + b"\r")
-                response_str = tn.read_until(b">", 3).decode('ascii')
+                response_str = tn.read_until(b"system...", 3).decode('ascii')
                 ret_str += response_str + "\r\n"
-                print(ret_str)
+                # print(ret_str)
                 time.sleep(1)
                 tn.write(b"\r")
         except (TimeoutError, socket.timeout):
@@ -276,14 +276,14 @@ def reboot_via_telnet(ip="rainmaker.wunderground.com", user=None, password=None)
             with Telnet(ip, timeout=3) as tn:
                 response_str = tn.read_until(b">", 3).decode('ascii')
                 ret_str += response_str + "\r\n"
-                print(ret_str)
+                # print(ret_str)
                 time.sleep(1)
                 inp = "reboot"
-                ret_str += f'\t{inp} \r\n'
+                ret_str += f'\t->{inp} \r\n'
                 tn.write(inp.encode('ascii') + b"\r")
                 response_str = tn.read_until(b">", 3).decode('ascii')
                 ret_str += response_str + "\r\n"
-                print(ret_str)
+                # print(ret_str)
                 time.sleep(1)
                 tn.write(b"\r")
         except (TimeoutError, socket.timeout):
