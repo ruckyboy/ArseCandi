@@ -64,6 +64,7 @@ class VenuesPanel(wx.Panel):
         self.SetFont(fnt)
 
         self.timer = wx.Timer(self)
+        self.cam_html = None
 
         self.last_device = None  # keeping track of tooltip messages to prevent flicker
 
@@ -81,7 +82,8 @@ class VenuesPanel(wx.Panel):
         venues_section_sizer = wx.BoxSizer(wx.VERTICAL)
 
         """ Venues Search TextBox """
-        self.venues_search_tb = wx.SearchCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size(-1, -1), 0)
+        self.venues_search_tb = wx.SearchCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size(-1, -1),
+                                              wx.TE_PROCESS_ENTER)
         self.venues_search_tb.ShowSearchButton(False)
         self.venues_search_tb.ShowCancelButton(True)
         self.venues_search_tb.SetForegroundColour(COLOUR_TEXT_LARGE)
@@ -166,6 +168,7 @@ class VenuesPanel(wx.Panel):
         self.device_olv.oddRowsBackColor = wx.Colour(COLOUR_ODD_LISTROW)
         self.device_olv.SetEmptyListMsg("No devices")
         self.device_olv.SetEmptyListMsgColors(wx.WHITE, wx.Colour(COLOUR_EVEN_LISTROW))
+        self.device_olv.SetSizeHints((365, 325), (555, -1))
 
         self.device_olv.SetMinSize(wx.Size(365, 325))
 
@@ -205,10 +208,17 @@ class VenuesPanel(wx.Panel):
         device_list_buttons_sizer.Add(self.autoping_btn, 0,
                                       wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
 
-        self.ping_btn = wx.Button(self, wx.ID_ANY, "Ping", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        self.venue_ping_btn = wx.Button(self, wx.ID_ANY, "Venue Ping", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        apply_button_template(self.venue_ping_btn)
+        device_list_buttons_sizer.Add(self.venue_ping_btn, 0,
+                                      wx.RIGHT | wx.BOTTOM | wx.TOP | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+
+        self.ping_btn = wx.Button(self, wx.ID_ANY, "Device Ping", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
         apply_button_template(self.ping_btn)
         device_list_buttons_sizer.Add(self.ping_btn, 0,
-                                      wx.RIGHT | wx.BOTTOM | wx.TOP | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+                                      wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+
+        device_list_buttons_sizer.Add(wx.Size(0, 10))
 
         self.webcontrol_btn = wx.Button(self, wx.ID_ANY, "Web Control", wx.DefaultPosition, wx.DefaultSize,
                                         wx.NO_BORDER)
@@ -235,12 +245,14 @@ class VenuesPanel(wx.Panel):
         device_list_buttons_sizer.Add(self.reboot_btn, 0,
                                       wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
 
+        device_list_buttons_sizer.Add(wx.Size(0, 16))
+
         self.touchpanel_btn = wx.Button(self, wx.ID_ANY, "Touch Panel", wx.DefaultPosition, wx.DefaultSize,
                                         wx.NO_BORDER)
         self.touchpanel_btn.SetToolTip("Opens first touch panel in device list")
         apply_button_template(self.touchpanel_btn)
         device_list_buttons_sizer.Add(self.touchpanel_btn, 0,
-                                      wx.RIGHT | wx.BOTTOM | wx.TOP | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+                                      wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
 
         self.pc_btn = wx.Button(self, wx.ID_ANY, "DameWare", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
         self.pc_btn.SetToolTip("Opens first PC in device list")
@@ -249,6 +261,7 @@ class VenuesPanel(wx.Panel):
                                       wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
 
         self.echo_btn = wx.Button(self, wx.ID_ANY, "Echo 360", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        self.echo_btn.SetToolTip("Opens device's web interface")
         apply_button_template(self.echo_btn)
         device_list_buttons_sizer.Add(self.echo_btn, 0,
                                       wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
@@ -269,7 +282,7 @@ class VenuesPanel(wx.Panel):
         self.cam_viewer.SetMinSize((355, 230))
         self.cam_viewer.SetMaxSize((355, 230))
         self.cam_viewer.EnableHistory(False)
-        # self.tt_viewer.Enable(False)
+        self.cam_viewer.Enable(False)
         webcam_sizer.Add(self.cam_viewer, 0, wx.ALL | wx.CENTER, 5)
 
         """ Cam viewer window spacer right """
@@ -426,6 +439,7 @@ class VenuesPanel(wx.Panel):
                                                  wx.Size(286, 187))
         self.image_viewer.SetMinSize((286, 187))
         self.image_viewer.SetMaxSize((286, 187))
+        self.image_viewer.Enable(False)
 
         details_section_sizer.Add(self.image_viewer, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
 
@@ -451,6 +465,8 @@ class VenuesPanel(wx.Panel):
         ### Setup event binding connections
         """
         self.venues_search_tb.Bind(wx.EVT_TEXT, self.txt_venues_filter_by_search_evt)
+        self.venues_search_tb.Bind(wx.EVT_TEXT_ENTER, self.filter_venues_olv)
+        self.venues_search_tb.Bind(wx.EVT_SEARCHCTRL_CANCEL_BTN, self.txt_venues_search_clear_evt)
         self.venue_olv.Bind(wx.EVT_LIST_ITEM_SELECTED, self.olv_venue_selected_evt)
         self.venue_olv.Bind(wx.EVT_KEY_DOWN, self.olv_venue_keydown_evt)
         self.venue_olv.Bind(wx.EVT_KEY_UP, self.olv_venue_keyup_evt)
@@ -461,6 +477,7 @@ class VenuesPanel(wx.Panel):
         self.device_olv.Bind(wx.EVT_MOTION, self.olv_device_update_tooltip)
         self.flagged_ckb.Bind(wx.EVT_CHECKBOX, self.ckb_device_filter_toggle_evt)
         self.autoping_btn.Bind(wx.EVT_TOGGLEBUTTON, self.btn_autoping_toggle_evt)
+        self.venue_ping_btn.Bind(wx.EVT_BUTTON, self.btn_venue_ping_evt)
         self.ping_btn.Bind(wx.EVT_BUTTON, self.btn_ping_evt)
         self.webcontrol_btn.Bind(wx.EVT_BUTTON, self.btn_webcontrol_evt)
         self.webcontrol_btn.Bind(wx.EVT_RIGHT_UP, self.btn_webcontrol_evt)
@@ -621,7 +638,11 @@ class VenuesPanel(wx.Panel):
             apply_button_template(self.webcam_refresh_btn, "active_toggle")
 
     def tmr_webcam_update(self, _):
-        self.cam_viewer.Reload(flags=1)  # Supposedly reloads without cache, seems to work!
+        if self.cam_html:
+            self.cam_viewer.SetPage(self.cam_html, "")
+        # Hopefully the above stops the flashing on redraw that occurs when using .Reload()
+        # self.cam_viewer.Reload(flags=1)  # Supposedly reloads without cache, seems to work!
+        # However .Reload brings the browser window to the front, placing other frames to the back - not handy :(
 
     def btn_webcam_open_evt(self, event):
         right_click = event.GetEventType() == 10035  # determine if the event type code is wx.EVT_RIGHT_UP
@@ -823,14 +844,17 @@ class VenuesPanel(wx.Panel):
     ### Filtering - Venues List 
     """
 
+    def txt_venues_search_clear_evt(self, event):
+        self.venue_textsearch_filter = None
+        self.filter_venues_olv(None)
+        event.Skip()
+
     def txt_venues_filter_by_search_evt(self, _):
         if self.venues_search_tb.IsEmpty():
             self.venue_textsearch_filter = None
         else:
             self.venue_textsearch_filter = Filter.TextSearch(self.venue_olv, text=self.venues_search_tb.GetValue())
             # ^ Searches for matching text in venue_olv columns
-
-        self.filter_venues_olv()
 
     def ckb_venues_filter_by_ctf_evt(self, event):
         choice = event.GetSelection()
@@ -851,7 +875,7 @@ class VenuesPanel(wx.Panel):
         self.ctf_filter_ckb.Refresh()  # this method pair prevents text overlaying when it changes on layout()
         self.ctf_filter_ckb.Update()
         self.venue_olv.SetFocus()
-        self.filter_venues_olv()
+        self.filter_venues_olv(None)
 
     def ckb_venues_filter_by_control_evt(self, event):
         choice = event.GetSelection()
@@ -872,9 +896,9 @@ class VenuesPanel(wx.Panel):
         self.controlled_filter_ckb.Refresh()
         self.controlled_filter_ckb.Update()
         self.venue_olv.SetFocus()
-        self.filter_venues_olv()
+        self.filter_venues_olv(None)
 
-    def filter_venues_olv(self):
+    def filter_venues_olv(self, _):
         last_venue_selected = self.venue_olv.GetSelectedObject()
         self.venue_filter_args = []
         if self.venue_ctf_filter:
@@ -1025,17 +1049,19 @@ class VenuesPanel(wx.Panel):
             # TODO still need to condense /normalise code in this method
             # TODO next lines are placeholder until proper url is programmed
             # cam_url = "http://136.142.166.244/-wvhttp-01-/GetOneShot?"  # it's a VB60
-            cam_html = "<!DOCTYPE html><meta http-equiv='X-UA-Compatible' content='IE=edge' /><html><head></head>" \
+            cam_html = "<!doctype html><meta http-equiv='X-UA-Compatible' content='IE=edge' /><html><head></head>" \
                        "<body style='margin: 0px; overflow: hidden;'><img alt='Camera Offline'" \
                 f" {image_size_str} src='{cam_url}'/></body></html>"
+            self.cam_html = cam_html
 
         else:
             # if there is no webcam....
+            self.cam_html = None
             self.webcam_open_btn.Hide()
             self.webcam_refresh_btn.Hide()
             cam_image = ac_utility.random_file(str(CAM_IMAGE_DIR), [".mp4"])
             if cam_image:
-                cam_html = "<!DOCTYPE html><meta http-equiv='X-UA-Compatible' content='IE=edge' /><html><head>" \
+                cam_html = "<!doctype html><meta http-equiv='X-UA-Compatible' content='IE=edge' /><html><head>" \
                            "<style type='text/css'>" \
                            "div{height: 210px; width: 335px; display: inline-block; " \
                            "vertical-align: top; position: relative;} " \
@@ -1049,10 +1075,10 @@ class VenuesPanel(wx.Panel):
             else:
                 cam_html = "<!doctype html><html><body><H1>No camera,</br>No awesome GIFs,</br>Sad..</H1></body></html>"
         if failed:
+            self.cam_html = None
             cam_html = "<!doctype html><html><body>" \
                        "<H1>Camera says NO...</H1><H2>Can't connect</H2><H3>Sad...</H3>" \
                        "</body></html>"
-
         self.cam_viewer.SetPage(cam_html, "")
 
     def populate_imageview(self, websis_id):
@@ -1085,6 +1111,12 @@ class VenuesPanel(wx.Panel):
             self._run_venue_ping()  # Fires off a venue ping when enabled
         else:
             apply_button_template(self.autoping_btn, "default")
+
+    def btn_venue_ping_evt(self, _):
+        self.venue_ping_btn.Hide()
+        self._run_venue_ping()
+        wx.YieldIfNeeded()
+        self.venue_ping_btn.Show()
 
     def btn_ping_evt(self, _):
         """ runs a ping on the selected device """
@@ -1707,15 +1739,15 @@ class TimeTableFrame(wx.Frame):
         self.tt_html = tt_html
         self.current_content = 0
 
-        wx.Frame.__init__(self, parent=parent, title=title, size=wx.Size(1200, 760))
+        wx.Frame.__init__(self, parent=parent, title=title, size=wx.Size(1200, 480))
 
-        self.SetSizeHints((1200, 520), wx.DefaultSize)
+        self.SetSizeHints((1200, 480), wx.DefaultSize)
         # self.SetMinSize(wx.Size(1412, 840))
 
         frame_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.main_panel = wx.Panel(self, wx.ID_ANY, wx.DefaultPosition, wx.Size(1200, 760))
-        self.main_panel.SetMinSize(wx.Size(1200, 520))
+        self.main_panel = wx.Panel(self, wx.ID_ANY, wx.DefaultPosition, wx.Size(1200, 480))
+        self.main_panel.SetMinSize(wx.Size(1200, 480))
 
         panel_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -1724,8 +1756,8 @@ class TimeTableFrame(wx.Frame):
         self.view_btn = wx.Button(self.main_panel, wx.ID_ANY, "Change View", wx.DefaultPosition, wx.DefaultSize, 0)
         panel_sizer.Add(self.view_btn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
 
-        self.tt_viewer = wx.html2.WebView.New(self.main_panel)
-        self.tt_viewer.SetMinSize(wx.Size(1200, 520))
+        self.tt_viewer = wx.html2.WebView.New(self.main_panel, size=wx.Size(1200, 480))
+        self.tt_viewer.SetMinSize(wx.Size(1200, 480))
 
         self.tt_viewer.SetPage(self.tt_html[self.current_content], "")
         # self.tt_viewer.SetPage(list_html, "")
@@ -1735,7 +1767,7 @@ class TimeTableFrame(wx.Frame):
         self.tt_viewer.Enable(True)
         # panel_sizer.Add((0, 0), 1, wx.EXPAND, 5)
 
-        panel_sizer.AddStretchSpacer()
+        # panel_sizer.AddStretchSpacer()
         self.main_panel.SetSizer(panel_sizer)
         self.main_panel.Layout()
         # panel_sizer.Fit(self.main_panel)
@@ -1950,7 +1982,8 @@ class MainFrame(wx.Frame):
         pass
 
     def refresh_menu_evt(self, _):
-        self.refresh_data()
+        if self.status_bar.GetStatusText(2).startswith("Last checked"):
+            self.refresh_data()
 
     def refresh_data(self):
         prev_sb1_text = self.status_bar.GetStatusText(1)
@@ -1988,7 +2021,7 @@ class MainFrame(wx.Frame):
                 self.status_bar.Enable()
             else:
                 current_time = time.strftime('%d %b %Y %H:%M:%S', time.localtime())
-                _restore_status_text(prv_sb1_text, current_time)
+                _restore_status_text(prv_sb1_text, f'Last checked for updates: {current_time}')
 
     def _push_new_data(self):
         self.main_panel.venue_olv.SetObjects(venues_full, True)

@@ -28,7 +28,7 @@ def timetable_html(sims_id, venue):
 
     # Build the list view html ####
     html_str = "<!DOCTYPE html><meta http-equiv='X-UA-Compatible' content='IE=edge' />\r<html>\r<head></head>\r<body>\r"
-    html_str += f'<p>{venue}: Bookings for week {current_week}, commencing {cw_monday}</p>\r'
+    html_str += f'<p><b>{venue}: Bookings for week {current_week}, commencing {cw_monday}</b></p>\r'
     for i in range(7):
         if current_day == i+1:
             html_str += f'<p style="background:#fff5e6">\r{days_lst[i]}<br/>\r'
