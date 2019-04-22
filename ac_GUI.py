@@ -168,6 +168,7 @@ class VenuesPanel(wx.Panel):
         self.device_olv.oddRowsBackColor = wx.Colour(COLOUR_ODD_LISTROW)
         self.device_olv.SetEmptyListMsg("No devices")
         self.device_olv.SetEmptyListMsgColors(wx.WHITE, wx.Colour(COLOUR_EVEN_LISTROW))
+        self.device_olv.SetSizeHints((365, 325), (555, -1))
 
         self.device_olv.SetMinSize(wx.Size(365, 325))
 
@@ -207,10 +208,15 @@ class VenuesPanel(wx.Panel):
         device_list_buttons_sizer.Add(self.autoping_btn, 0,
                                       wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
 
-        self.ping_btn = wx.Button(self, wx.ID_ANY, "Ping", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        self.venue_ping_btn = wx.Button(self, wx.ID_ANY, "Venue Ping", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        apply_button_template(self.venue_ping_btn)
+        device_list_buttons_sizer.Add(self.venue_ping_btn, 0,
+                                      wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+
+        self.ping_btn = wx.Button(self, wx.ID_ANY, "Device Ping", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
         apply_button_template(self.ping_btn)
         device_list_buttons_sizer.Add(self.ping_btn, 0,
-                                      wx.RIGHT | wx.BOTTOM | wx.TOP | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+                                      wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
 
         self.webcontrol_btn = wx.Button(self, wx.ID_ANY, "Web Control", wx.DefaultPosition, wx.DefaultSize,
                                         wx.NO_BORDER)
@@ -218,7 +224,7 @@ class VenuesPanel(wx.Panel):
 
         apply_button_template(self.webcontrol_btn)
         device_list_buttons_sizer.Add(self.webcontrol_btn, 0,
-                                      wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+                                      wx.RIGHT | wx.BOTTOM | wx.TOP | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
 
         self.vnc_btn = wx.Button(self, wx.ID_ANY, "VNC", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
         apply_button_template(self.vnc_btn)
@@ -466,6 +472,7 @@ class VenuesPanel(wx.Panel):
         self.device_olv.Bind(wx.EVT_MOTION, self.olv_device_update_tooltip)
         self.flagged_ckb.Bind(wx.EVT_CHECKBOX, self.ckb_device_filter_toggle_evt)
         self.autoping_btn.Bind(wx.EVT_TOGGLEBUTTON, self.btn_autoping_toggle_evt)
+        self.venue_ping_btn.Bind(wx.EVT_BUTTON, self.btn_venue_ping_evt)
         self.ping_btn.Bind(wx.EVT_BUTTON, self.btn_ping_evt)
         self.webcontrol_btn.Bind(wx.EVT_BUTTON, self.btn_webcontrol_evt)
         self.webcontrol_btn.Bind(wx.EVT_RIGHT_UP, self.btn_webcontrol_evt)
@@ -1101,6 +1108,12 @@ class VenuesPanel(wx.Panel):
         else:
             apply_button_template(self.autoping_btn, "default")
 
+    def btn_venue_ping_evt(self, _):
+        self.venue_ping_btn.Hide()
+        self._run_venue_ping()
+        wx.YieldIfNeeded()
+        self.venue_ping_btn.Show()
+
     def btn_ping_evt(self, _):
         """ runs a ping on the selected device """
         # TODO at some point look at stopping multiple clicks from queuing - fixed it I think 17/2/19
@@ -1722,15 +1735,15 @@ class TimeTableFrame(wx.Frame):
         self.tt_html = tt_html
         self.current_content = 0
 
-        wx.Frame.__init__(self, parent=parent, title=title, size=wx.Size(1200, 760))
+        wx.Frame.__init__(self, parent=parent, title=title, size=wx.Size(1200, 480))
 
-        self.SetSizeHints((1200, 520), wx.DefaultSize)
+        self.SetSizeHints((1200, 480), wx.DefaultSize)
         # self.SetMinSize(wx.Size(1412, 840))
 
         frame_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.main_panel = wx.Panel(self, wx.ID_ANY, wx.DefaultPosition, wx.Size(1200, 760))
-        self.main_panel.SetMinSize(wx.Size(1200, 520))
+        self.main_panel = wx.Panel(self, wx.ID_ANY, wx.DefaultPosition, wx.Size(1200, 480))
+        self.main_panel.SetMinSize(wx.Size(1200, 480))
 
         panel_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -1739,8 +1752,8 @@ class TimeTableFrame(wx.Frame):
         self.view_btn = wx.Button(self.main_panel, wx.ID_ANY, "Change View", wx.DefaultPosition, wx.DefaultSize, 0)
         panel_sizer.Add(self.view_btn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
 
-        self.tt_viewer = wx.html2.WebView.New(self.main_panel)
-        self.tt_viewer.SetMinSize(wx.Size(1200, 520))
+        self.tt_viewer = wx.html2.WebView.New(self.main_panel, size=wx.Size(1200, 480))
+        self.tt_viewer.SetMinSize(wx.Size(1200, 480))
 
         self.tt_viewer.SetPage(self.tt_html[self.current_content], "")
         # self.tt_viewer.SetPage(list_html, "")
@@ -1750,7 +1763,7 @@ class TimeTableFrame(wx.Frame):
         self.tt_viewer.Enable(True)
         # panel_sizer.Add((0, 0), 1, wx.EXPAND, 5)
 
-        panel_sizer.AddStretchSpacer()
+        # panel_sizer.AddStretchSpacer()
         self.main_panel.SetSizer(panel_sizer)
         self.main_panel.Layout()
         # panel_sizer.Fit(self.main_panel)
