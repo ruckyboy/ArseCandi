@@ -168,14 +168,15 @@ def build_icandi_json():
                         venue["asana"] = fields.get("Asana tag", "")
                         venue["sdc"] = fields.get("_SDC_String", "")
 
-                        # Construct a new key ["Devices ip"] by iterating through ["_Device Data"] - a list of
-                        # semicolon separated device strings - "device name; ip; extension" and splitting into list
+                        # Construct a new key ["networkdevice"] by iterating through ["_Device Data"] - a list of
+                        # semicolon separated device strings and splitting into list
+                        # "device name; ip; extension; distribution point; VLAN"
                         devicedata = fields.pop("_Device Data", None)  #
                         devicelist = []
 
                         if devicedata:
                             for d in devicedata:
-                                devicelist.append(d.split('; '))
+                                devicelist.append(d.split(' ; '))
 
                         # add, pc, web cam and echo360 to the device/ip collection
                         pc = fields.get("_PC", "")

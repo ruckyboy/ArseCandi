@@ -211,12 +211,14 @@ class VenuesPanel(wx.Panel):
         self.venue_ping_btn = wx.Button(self, wx.ID_ANY, "Venue Ping", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
         apply_button_template(self.venue_ping_btn)
         device_list_buttons_sizer.Add(self.venue_ping_btn, 0,
-                                      wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+                                      wx.RIGHT | wx.BOTTOM | wx.TOP | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
 
         self.ping_btn = wx.Button(self, wx.ID_ANY, "Device Ping", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
         apply_button_template(self.ping_btn)
         device_list_buttons_sizer.Add(self.ping_btn, 0,
                                       wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+
+        device_list_buttons_sizer.Add(wx.Size(0, 10))
 
         self.webcontrol_btn = wx.Button(self, wx.ID_ANY, "Web Control", wx.DefaultPosition, wx.DefaultSize,
                                         wx.NO_BORDER)
@@ -224,7 +226,7 @@ class VenuesPanel(wx.Panel):
 
         apply_button_template(self.webcontrol_btn)
         device_list_buttons_sizer.Add(self.webcontrol_btn, 0,
-                                      wx.RIGHT | wx.BOTTOM | wx.TOP | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+                                      wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
 
         self.vnc_btn = wx.Button(self, wx.ID_ANY, "VNC", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
         apply_button_template(self.vnc_btn)
@@ -243,12 +245,14 @@ class VenuesPanel(wx.Panel):
         device_list_buttons_sizer.Add(self.reboot_btn, 0,
                                       wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
 
+        device_list_buttons_sizer.Add(wx.Size(0, 16))
+
         self.touchpanel_btn = wx.Button(self, wx.ID_ANY, "Touch Panel", wx.DefaultPosition, wx.DefaultSize,
                                         wx.NO_BORDER)
         self.touchpanel_btn.SetToolTip("Opens first touch panel in device list")
         apply_button_template(self.touchpanel_btn)
         device_list_buttons_sizer.Add(self.touchpanel_btn, 0,
-                                      wx.RIGHT | wx.BOTTOM | wx.TOP | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+                                      wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
 
         self.pc_btn = wx.Button(self, wx.ID_ANY, "DameWare", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
         self.pc_btn.SetToolTip("Opens first PC in device list")
@@ -257,6 +261,7 @@ class VenuesPanel(wx.Panel):
                                       wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
 
         self.echo_btn = wx.Button(self, wx.ID_ANY, "Echo 360", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        self.echo_btn.SetToolTip("Opens device's web interface")
         apply_button_template(self.echo_btn)
         device_list_buttons_sizer.Add(self.echo_btn, 0,
                                       wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
