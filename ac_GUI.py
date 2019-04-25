@@ -512,9 +512,14 @@ class VenuesPanel(wx.Panel):
         right_click = event.GetEventType() == 10035  # determine if the event type code is wx.EVT_RIGHT_UP
         ipstring = self.device_olv.GetSelectedObject()[1]
 
-        if "Extron Touch Panel" in (self.device_olv.GetSelectedObject()[0]):
-            extension = self.device_olv.GetSelectedObject()[2]
-            ipstring = f'https://{ipstring}/web/vtlp/{extension}/index.html#/main'
+        # todo see if we can bypass extron logon page by passing 'https://admin:extron@{ipstring}' type string
+
+        if "Extron" in (self.device_olv.GetSelectedObject()[0]):
+            if "Touch Panel" in (self.device_olv.GetSelectedObject()[0]):
+                extension = self.device_olv.GetSelectedObject()[2]
+                ipstring = f'https://{ipstring}/web/vtlp/{extension}/index.html#/main'
+            else:
+                ipstring = f'https://admin:extron@{ipstring}'  # testing pasword....
 
         if not right_click:
             progstring = prefs_dict["main_browser"]
