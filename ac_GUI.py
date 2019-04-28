@@ -16,6 +16,7 @@ from ObjectListView import ObjectListView, ColumnDefn, Filter
 from ac_constants import *
 import arsecandi
 import ac_utility
+from ac_utility import check_bit_set
 import ac_ping
 import ac_html
 
@@ -159,10 +160,11 @@ class VenuesPanel(wx.Panel):
         self.device_olv = ObjectListView(self, wx.ID_ANY | wx.EXPAND, wx.DefaultPosition, wx.Size(-1, -1),
                                          sortable=False, style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.NO_BORDER)
         self.device_olv.SetColumns([
-            ColumnDefn("Address", "left", -1, 1, fixedWidth=105, isSearchable=False),
-            ColumnDefn("Device", "left", -1, 0, minimumWidth=150, isSpaceFilling=True, isSearchable=False),
+            ColumnDefn("Address", "left", -1, 0, fixedWidth=105, isSearchable=False),
+            ColumnDefn("Device", "left", -1, 1, minimumWidth=150, isSpaceFilling=True, isSearchable=False),
             ColumnDefn("Ping", "right", -1, "ping", fixedWidth=100, isSearchable=False)])
         # Ping is a generated result
+        self.device_olv.SortBy(1)
         self.device_olv.SetBackgroundColour(COLOUR_EVEN_LISTROW)
         self.device_olv.evenRowsBackColor = wx.Colour(COLOUR_EVEN_LISTROW)
         self.device_olv.oddRowsBackColor = wx.Colour(COLOUR_ODD_LISTROW)
@@ -510,12 +512,12 @@ class VenuesPanel(wx.Panel):
     def btn_webcontrol_evt(self, event):
         # opens a web browser to the control page, for laser projectors, Extron controls, etc
         right_click = event.GetEventType() == 10035  # determine if the event type code is wx.EVT_RIGHT_UP
-        ipstring = self.device_olv.GetSelectedObject()[1]
+        ipstring = self.device_olv.GetSelectedObject()[0]
 
         # todo see if we can bypass extron logon page by passing 'https://admin:extron@{ipstring}' type string
 
-        if "Extron" in (self.device_olv.GetSelectedObject()[0]):
-            if "Touch Panel" in (self.device_olv.GetSelectedObject()[0]):
+        if "Extron" in (self.device_olv.GetSelectedObject()[1]):
+            if "Touch Panel" in (self.device_olv.GetSelectedObject()[1]):
                 extension = self.device_olv.GetSelectedObject()[2]
                 ipstring = f'https://{ipstring}/web/vtlp/{extension}/index.html#/main'
             else:
@@ -531,7 +533,7 @@ class VenuesPanel(wx.Panel):
     def btn_vnc_evt(self, _):
         # opens a VNC session for AMX touchpanels
         progstring = prefs_dict["vnc"]
-        ipstring = self.device_olv.GetSelectedObject()[1]
+        ipstring = self.device_olv.GetSelectedObject()[0]
         self._launch_vnc(progstring, ipstring)
 
     def _launch_vnc(self, progstring, ipstring):
@@ -546,7 +548,7 @@ class VenuesPanel(wx.Panel):
         # opens a telnet shell session
         progstring = prefs_dict["telnet"]
         # TODO reinstate below for uwa use
-        ipstring = self.device_olv.GetSelectedObject()[1]
+        ipstring = self.device_olv.GetSelectedObject()[0]
         # ipstring = "35.160.169.47"  # Testing only
         try:
             # For Telnet use Popen with argument shell=True
@@ -558,7 +560,7 @@ class VenuesPanel(wx.Panel):
 
     def btn_reboot_evt(self, _):
         # uses the telnet library in ac_utility.py, rather than the old vbs script
-        device_type = self.device_olv.GetSelectedObject()[0]
+        device_type = self.device_olv.GetSelectedObject()[1]
         venue_name = self.venue_olv.GetSelectedObject()['name']
         message = f"You are about to reboot the {device_type} \nin {venue_name}" \
             f"\n\nAre you sure that you want to continue?\n\n"
@@ -571,7 +573,7 @@ class VenuesPanel(wx.Panel):
             pwd = "password"
         if dlg == wx.YES:
             # TODO reinstate below for uwa use
-            ipstring = self.device_olv.GetSelectedObject()[1]
+            ipstring = self.device_olv.GetSelectedObject()[0]
             response = ac_utility.reboot_via_telnet(ipstring, user, pwd)
 
             MultiMessageBox(f'{venue_name} : {device_type}  [{ipstring}]', "Telnet Session Details...", response)
@@ -582,16 +584,18 @@ class VenuesPanel(wx.Panel):
         # opens a vnc or web session for the first listed venue touch-panel (depending on AMX or Extron type)
 
         for row in range(self.device_olv.GetItemCount()):
-            if "Extron Touch Panel" in (self.device_olv.GetItemText(row, 1)):
+            if "Touch Panel - Extron" in (self.device_olv.GetItemText(row, 1)):
                 progstring = prefs_dict["main_browser"]
-                ipstring = self.device_olv.GetItemText(row, 0)
-                extension = self.device_olv.GetItemText(row, 3)  # The extension column is not visually present in olv
+                touchpanel= self.device_olv.GetObjectAt(row)
+                ipstring = touchpanel[0]
+                extension = touchpanel[2]
                 full_ipstring = f'https://{ipstring}/web/vtlp/{extension}/vtlp.html'
                 _launch_main_browser(progstring, full_ipstring)
                 break
-            elif "Touch Panel" in (self.device_olv.GetItemText(row, 1)):
+            elif "Touch Panel - AMX" in (self.device_olv.GetItemText(row, 1)):
                 progstring = prefs_dict["vnc"]
-                ipstring = self.device_olv.GetItemText(row, 0)
+                touchpanel= self.device_olv.GetObjectAt(row)
+                ipstring = touchpanel[0]
                 self._launch_vnc(progstring, ipstring)
                 break
 
@@ -619,16 +623,16 @@ class VenuesPanel(wx.Panel):
         # opens a web? session for the first listed venue Echo 360 device
         progstring = prefs_dict["main_browser"]
         for row in range(self.device_olv.GetItemCount()):
-            if "[Echo 360]" in (self.device_olv.GetItemText(row, 1)):
-                ipstring = self.device_olv.GetItemText(row, 0)
+            if "Echo 360" in (self.device_olv.GetItemText(row, 1)):
+                echo = self.device_olv.GetObjectAt(row)
+                ipstring = echo[0]
                 full_ipstring = f'https://admin:password@{ipstring}/advanced'
                 _launch_main_browser(progstring, full_ipstring)
                 break
 
     def webv_webcam_err_evt(self, event):
         print("Webcam Gagged: " + event.GetURL())
-        current_venue = self.venue_olv.GetSelectedObject()
-        wx.CallAfter(self.populate_camview, current_venue, failed=True)  # Note the format of function name + arguments
+        wx.CallAfter(self.populate_camview, failed=True)  # Note the format of function name + arguments
         #  waiting until this event finishes before sending request to update page - it's a timing thing
 
     def btn_webcam_refresh_evt(self, _):
@@ -652,61 +656,67 @@ class VenuesPanel(wx.Panel):
 
     def btn_webcam_open_evt(self, event):
         right_click = event.GetEventType() == 10035  # determine if the event type code is wx.EVT_RIGHT_UP
-        venue = (self.venue_olv.GetSelectedObject())
-        camera_type = venue["webcamtype"]
-        camera_ip = venue["webcam"]
-        win_size = (640, 480)
-        """
-        Camera controls
-        VB41: Chrome; Suffix=/viewer/live/en/live.html Size=1100x743
-        VB50: Firefox; Suffix=/sample/lvahuge.html; Size=833x780
-        VB60: Chrome; Suffix=/viewer/live/en/live.html; Size=810x745
-        SonyCam: Firefox; Suffix=/en/JViewer.html; Size=860x590
-        """
-        # TODO Placeholders until live
-        # camera_type = "VB60"
-        # camera_ip = "136.142.166.244"
+        for row in range(self.device_olv.GetItemCount()):
+            if "WebCam" in (self.device_olv.GetItemText(row, 1)):
+                webcam = self.device_olv.GetObjectAt(row)   # Using underlying object (not olv row info)
+                camera_ip = webcam[0]   # self.device_olv.GetItemText(row, 0)
+                camera_type = webcam[4]     # self.device_olv.GetItemText(row, 4)
 
-        if camera_type == "SonyCam":
-            viewer_url = f"http://{camera_ip}/en/JViewer.html"
-            win_size = (860, 590)
-            ext_browser = "Firefox"
-        elif camera_type == "VB41":
-            viewer_url = f"http://{camera_ip}/viewer/live/en/live.html"
-            win_size = (1100, 743)
-            ext_browser = "Chrome"
-        elif camera_type == "VB60":
-            viewer_url = f"http://{camera_ip}/viewer/live/en/live.html"
-            win_size = (870, 820)
-            ext_browser = "Chrome"
-        elif camera_type == "VB50":
-            viewer_url = f"http://{camera_ip}/sample/lvahuge.html"
-            win_size = (833, 780)
-            ext_browser = "Firefox"
-        else:
-            viewer_url = f"http://{camera_ip}"
-            win_size = (1024, 768)
-            ext_browser = "Chrome"
+                # venue = (self.venue_olv.GetSelectedObject())
+                # camera_type = venue["webcamtype"]
+                # camera_ip = venue["webcam"]
+                win_size = (640, 480)
+                """
+                Camera controls
+                VB41: Chrome; Suffix=/viewer/live/en/live.html Size=1100x743
+                VB50: Firefox; Suffix=/sample/lvahuge.html; Size=833x780
+                VB60: Chrome; Suffix=/viewer/live/en/live.html; Size=810x745
+                SonyCam: Firefox; Suffix=/en/JViewer.html; Size=860x590
+                """
+                # TODO Placeholders until live
+                # camera_type = "VB60"
+                # camera_ip = "136.142.166.244"
 
-        if right_click:
-            WebCamFrame(title=f"{camera_type} - {camera_ip}", size=win_size, address=viewer_url,
-                        parent=self.GetParent())
-            # webcam_window.Show()
-        else:
+                if camera_type == "SonyCam":
+                    viewer_url = f"http://{camera_ip}/en/JViewer.html"
+                    win_size = (860, 590)
+                    ext_browser = "Firefox"
+                elif camera_type == "VB41":
+                    viewer_url = f"http://{camera_ip}/viewer/live/en/live.html"
+                    win_size = (1100, 743)
+                    ext_browser = "Chrome"
+                elif camera_type == "VB60":
+                    viewer_url = f"http://{camera_ip}/viewer/live/en/live.html"
+                    win_size = (870, 820)
+                    ext_browser = "Chrome"
+                elif camera_type == "VB50":
+                    viewer_url = f"http://{camera_ip}/sample/lvahuge.html"
+                    win_size = (833, 780)
+                    ext_browser = "Firefox"
+                else:
+                    viewer_url = f"http://{camera_ip}"
+                    win_size = (1024, 768)
+                    ext_browser = "Chrome"
 
-            if ext_browser == "Chrome":
-                progstring = prefs_dict["main_browser"]
-                browser_switch = "--new-window"
-            else:
-                progstring = prefs_dict["alt_browser"]
-                browser_switch = "-new-window"
-            try:
-                subprocess.Popen(
-                    [progstring, browser_switch, viewer_url])  # opens browser with new window at address passed
-            except OSError as e:
-                print("Browser failed to run:", e)
-                msg_warn(self, f"Browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
-            event.Skip()
+                if right_click:
+                    WebCamFrame(title=f"{camera_type} - {camera_ip}", size=win_size, address=viewer_url,
+                                parent=self.GetParent())
+                    # webcam_window.Show()
+                else:
+
+                    if ext_browser == "Chrome":
+                        progstring = prefs_dict["main_browser"]
+                        browser_switch = "--new-window"
+                    else:
+                        progstring = prefs_dict["alt_browser"]
+                        browser_switch = "-new-window"
+                    try:
+                        subprocess.Popen(
+                            [progstring, browser_switch, viewer_url])  # opens browser with new window at passed address
+                    except OSError as e:
+                        print("Browser failed to run:", e)
+                        msg_warn(self, f"Browser failed to run:\n{progstring}\n\nCheck: View -> Settings\n\n{e}")
+                    event.Skip()
 
     def btn_airtable_evt(self, event):
         # opens a web browser to the venue's AirTable page
@@ -794,7 +804,7 @@ class VenuesPanel(wx.Panel):
                 APP_NAME + "  >>  " + current_venue["name"])  # Add venue name to window title
             self.populate_device_olv(current_venue)
             self.populate_details_section(current_venue)
-            self.populate_camview(current_venue)
+            self.populate_camview()
 
         # event.Skip()  # Contrary to the name, event.Skip() ensures other event calls ARE executed if needed
 
@@ -810,10 +820,10 @@ class VenuesPanel(wx.Panel):
             if current_device != self.last_device:
                 self.last_device = current_device
                 try:
-                    cd_dp = current_device[3]
-                    cd_vlan = current_device[4]
-                    cd_notes = current_device[5]
-                    msg = f"DP: {cd_dp}\nVLAN: {cd_vlan}\n{cd_notes}"
+                    cd_notes = current_device[3]
+                    cd_model = current_device[4]
+                    cd_flag = current_device[5]
+                    msg = f"Model: {cd_model}\nFlags: {cd_flag}\n{cd_notes}"
                     self.device_olv.SetToolTip(msg)
                 except IndexError:
                     self.device_olv.SetToolTip("")
@@ -824,22 +834,30 @@ class VenuesPanel(wx.Panel):
         event.Skip()
 
     def olv_device_selected_evt(self, _):
-        """ This method just enables buttons dependant on the selected device """
-        current_device = self.device_olv.GetSelectedObject()[0]
+        """ This method just enables buttons dependant on the selected device
+            Button flags are set in iTurd and sent as an integer to be bitwise checked
+            position 1: Telnet
+            position 2: Telnet Reboot
+            position 3: Web Control
+            position 4: VNC
+            position 5: Dameware
+        """
 
-        if current_device.startswith(("Net", "DGX", "DVX", "DX ", "Tou")):
-            apply_button_template(self.reboot_btn)
-        else:
-            apply_button_template(self.reboot_btn, "disabled")
-        if current_device.startswith(("Net", "DGX", "DVX", "DX ", "DSP", "Key", "Vid", "Tou")):
+        current_device = int(self.device_olv.GetSelectedObject()[5])
+
+        if check_bit_set(current_device, 1):
             apply_button_template(self.telnet_btn)
         else:
             apply_button_template(self.telnet_btn, "disabled")
-        if current_device.startswith(("iBoo", "LCD", "Cam", "Data", "Dis", "Pro", "WeP", "Extr", "DP ")):
+        if check_bit_set(current_device, 2):
+            apply_button_template(self.reboot_btn)
+        else:
+            apply_button_template(self.reboot_btn, "disabled")
+        if check_bit_set(current_device, 3):
             apply_button_template(self.webcontrol_btn)
         else:
             apply_button_template(self.webcontrol_btn, "disabled")
-        if current_device.startswith("Tou"):
+        if check_bit_set(current_device, 4):
             apply_button_template(self.vnc_btn)
         else:
             apply_button_template(self.vnc_btn, "disabled")
@@ -945,7 +963,7 @@ class VenuesPanel(wx.Panel):
     def filter_devices_olv(self):
         if not self.device_show_flagged:
             # filtering out any device name that starts with '*'
-            self.device_olv.SetFilter(Filter.Predicate(lambda x: ("*" not in x[0])))
+            self.device_olv.SetFilter(Filter.Predicate(lambda x: ("*" not in x[1])))
         else:
             self.device_olv.SetFilter(None)  # If there's nothing to filter, the filter is reset to None
 
@@ -992,7 +1010,7 @@ class VenuesPanel(wx.Panel):
         for row in range(self.device_olv.GetItemCount()):
             venue_device_names.append(self.device_olv.GetItemText(row, 1))
 
-        if "Touch Panel" or "Extron Touch Panel" in venue_device_names:
+        if "Touch Panel - AMX" or "Touch Panel - Extron" in venue_device_names:
             apply_button_template(self.touchpanel_btn)
         else:
             apply_button_template(self.touchpanel_btn, "disabled")
@@ -1000,7 +1018,7 @@ class VenuesPanel(wx.Panel):
             apply_button_template(self.pc_btn)
         else:
             apply_button_template(self.pc_btn, "disabled")
-        if "[Echo 360]" in venue_device_names:
+        if "Echo 360" in venue_device_names:
             apply_button_template(self.echo_btn)
         else:
             apply_button_template(self.echo_btn, "disabled")
@@ -1021,11 +1039,16 @@ class VenuesPanel(wx.Panel):
 
         self.populate_imageview(venue["websis"])
 
-    def populate_camview(self, venue, failed=False):
-        camera_type = venue["webcamtype"]
-        camera_ip = venue["webcam"]
+    def populate_camview(self, failed=False):
+        camera_type, camera_ip = None, None
         cam_html, cam_url = None, None
         image_size_str = ""
+
+        for row in range(self.device_olv.GetItemCount()):
+            if "WebCam" in (self.device_olv.GetItemText(row, 1)):
+                webcam = self.device_olv.GetObjectAt(row)
+                camera_ip = webcam[0]   # self.device_olv.GetItemText(row, 0)
+                camera_type = webcam[4]     # self.device_olv.GetItemText(row, 4)
 
         if camera_type:
             self.webcam_refresh_btn.SetToolTip(camera_ip)
@@ -1074,7 +1097,7 @@ class VenuesPanel(wx.Panel):
                            "video{max-height: 100%; max-width: 100%; width: auto; height: auto; " \
                            "position: absolute; top: 0; bottom: 0; left: 0; right: 0; margin: auto;}</style>" \
                            "<div><video autoplay loop muted playsinline>" \
-                    f"<source src='file:///{str(CAM_IMAGE_DIR / cam_image)}'/></video></div>" \
+                           f"<source src='file:///{str(CAM_IMAGE_DIR / cam_image)}'/></video></div>" \
                            "</head><body>" \
                            "</body></html>"
 
@@ -1131,7 +1154,7 @@ class VenuesPanel(wx.Panel):
         # NOTE neither enable() or show() prevent mouse event queuing - ie. clicks still register
 
         self.ping_btn.Hide()
-        device_ip = [self.device_olv.GetSelectedObject()[1]]
+        device_ip = [self.device_olv.GetSelectedObject()[0]]
         timeout = 1000
         batchsize = 1
         index = self.device_olv.GetIndexOf(self.device_olv.GetSelectedObject())
@@ -1613,18 +1636,7 @@ class StatisticsReport(wx.Panel):
                         <td align=center>{stats["ctf_n_pc"]}</td>
                         <td align=center>{stats["ctf_tot_pc"]}</td>
                     </tr>
-                    <tr>
-                        <th scope='row' align='right' bgcolor={COLOUR_TABLE_HEADER_BG}>Web Camera</th>
-                        <td align=center>{stats["ctf_y_cam"]}</td>
-                        <td align=center>{stats["ctf_n_cam"]}</td>
-                        <td align=center>{stats["ctf_tot_cam"]}</td>
-                    </tr>
-                    <tr>
-                        <th scope='row' align='right' bgcolor={COLOUR_TABLE_HEADER_BG}>Echo Device</th>
-                        <td align=center>{stats["ctf_y_echo"]}</td>
-                        <td align=center>{stats["ctf_n_echo"]}</td>
-                        <td align=center>{stats["ctf_tot_echo"]}</td>
-                    </tr>
+
                 </tbody>
             </table>
 
@@ -1632,25 +1644,16 @@ class StatisticsReport(wx.Panel):
             <table border=0 cellpadding=10 bgcolor={COLOUR_TABLE_BG}>
                 <thead>
                     <tr bgcolor={COLOUR_TABLE_HEADER_BG}>
-                        <th colspan=6>Venue Web Cameras</th>
+                        <th colspan=5>Venue Web Cameras</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr bgcolor={COLOUR_TABLE_HEADER_BG}>
-                        <th width=70>VB10</th>
                         <th width=70>VB41</th>
                         <th width=70>VB50</th>
                         <th width=70>VB60</th>
                         <th width=70>Sony</th>
                         <th width=70>Total</th>
-                    </tr>
-                    <tr>
-                        <td align=center>{stats["camtype_vb10"]}</td>
-                        <td align=center>{stats["camtype_vb41"]}</td>
-                        <td align=center>{stats["camtype_vb50"]}</td>
-                        <td align=center>{stats["camtype_vb60"]}</td>
-                        <td align=center>{stats["camtype_sony"]}</td>
-                        <td align=center>{stats["camtype_tot"]}</td>
                     </tr>
                 </tbody>
             </table>

@@ -159,9 +159,9 @@ def build_icandi_json():
                         venue["cardax"] = "Yes" if fields.get("Cardax") else "No"  # AirTable stored as boolean
                         venue["notes"] = fields.get("_Notes", "")
                         venue["pc"] = fields.get("_PC", "")
-                        venue["webcam"] = fields.get("_WebCam", "")
-                        venue["webcamtype"] = fields.get("_WebCamType", "")
-                        venue["echo360"] = fields.get("_Echo360", "")
+                        # venue["webcam"] = fields.get("_WebCam", "")
+                        # venue["webcamtype"] = fields.get("_WebCamType", "")
+                        # venue["echo360"] = fields.get("_Echo360", "")
                         venue["websis"] = fields.get("Venue WebSIS Link", "")
                         venue["projection"] = fields.get("Projection", "")
                         venue["projector"] = fields.get("Projector", "")
@@ -170,28 +170,31 @@ def build_icandi_json():
 
                         # Construct a new key ["networkdevice"] by iterating through ["_Device Data"] - a list of
                         # semicolon separated device strings and splitting into list
-                        # "device name; ip; extension; distribution point; VLAN"
+                        # "ip; device name; extension; notes, model, Button Flags"
                         devicedata = fields.pop("_Device Data", None)  #
                         devicelist = []
 
                         if devicedata:
                             for d in devicedata:
-                                devicelist.append(d.split(' ; '))
+                                datalist = d.split(' ; ')
+                                if datalist[0]:     # if there's an ip address in the first position...
+                                    devicelist.append(datalist)
 
+                        # devicelist.sort()
                         # add, pc, web cam and echo360 to the device/ip collection
                         pc = fields.get("_PC", "")
-                        webcam = fields.get("_WebCam", "")
-                        echo360 = fields.get("_Echo360", "")
+                        # webcam = fields.get("_WebCam", "")
+                        # echo360 = fields.get("_Echo360", "")
 
                         # TODO make allowances for more than one webcam and pc per venue - requires Airtable adjustment
 
-                        if webcam:
-                            devicelist.append(("[WebCam]", webcam, "0"))
-                        if echo360:
-                            devicelist.append(("[Echo 360]", echo360, "0"))
+                        # if webcam:
+                        #     devicelist.append((webcam, "[WebCam]", "0", "", "Webcam", 4))
+                        # if echo360:
+                        #     devicelist.append((echo360, "Echo 360", "0", "", "Echo 360", 4))
                         if pc:
                             for item in pc.split(', '):
-                                devicelist.append(("[Lectern PC]", item, "0"))
+                                devicelist.append((item, "[Lectern PC]", "0", "", "PC", 16))
 
                         venue["networkdevice"] = devicelist
 

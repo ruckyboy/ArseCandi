@@ -53,23 +53,22 @@ def get_venue_stats(venues_list):
     stats_dict['ctf_n_pc'] = pcs['No']
     stats_dict['ctf_tot_pc'] = sum(pcs.values())
 
-    echo = Counter(item['ctf'] for item in venues_list if item['echo360'])
-    stats_dict['ctf_y_echo'] = echo['Yes']
-    stats_dict['ctf_n_echo'] = echo['No']
-    stats_dict['ctf_tot_echo'] = sum(echo.values())
+    # echo = Counter(item['ctf'] for item in venues_list if item['echo360'])
+    # stats_dict['ctf_y_echo'] = echo['Yes']
+    # stats_dict['ctf_n_echo'] = echo['No']
+    # stats_dict['ctf_tot_echo'] = sum(echo.values())
 
-    cam = Counter(item['ctf'] for item in venues_list if item['webcam'])
-    stats_dict['ctf_y_cam'] = cam['Yes']
-    stats_dict['ctf_n_cam'] = cam['No']
-    stats_dict['ctf_tot_cam'] = sum(cam.values())
+    # cam = Counter(item['ctf'] for item in venues_list if item['webcam'])
+    # stats_dict['ctf_y_cam'] = cam['Yes']
+    # stats_dict['ctf_n_cam'] = cam['No']
+    # stats_dict['ctf_tot_cam'] = sum(cam.values())
 
-    camtype = Counter(item['webcamtype'] for item in venues_list if item['webcam'])
-    stats_dict['camtype_vb10'] = camtype['VB10']
-    stats_dict['camtype_vb41'] = camtype['VB41']
-    stats_dict['camtype_vb50'] = camtype['VB50']
-    stats_dict['camtype_vb60'] = camtype['VB60']
-    stats_dict['camtype_sony'] = camtype['SonyCam']
-    stats_dict['camtype_tot'] = sum(camtype.values())
+    # camtype = Counter(item['webcamtype'] for item in venues_list if item['webcam'])
+    # stats_dict['camtype_vb41'] = camtype['VB41']
+    # stats_dict['camtype_vb50'] = camtype['VB50']
+    # stats_dict['camtype_vb60'] = camtype['VB60']
+    # stats_dict['camtype_sony'] = camtype['SonyCam']
+    # stats_dict['camtype_tot'] = sum(camtype.values())
 
     alloc_tot = 0
     active_alloc_tot = 0
