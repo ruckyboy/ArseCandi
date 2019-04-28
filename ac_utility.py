@@ -404,3 +404,22 @@ if __name__ == '__main__':
     print(a)
     print(b)
     print(c)
+
+
+"""
+#########################################################################################
+   Bitwise checking utilities
+#########################################################################################
+"""
+
+
+def check_bit_set(value: int, bit: int):
+    """
+    Simple function to determine if a particular bit is set
+    eg (12 - binary 1100) then positions 3 and 4 are set
+    :param value:   Number to be tested
+    :param bit:     Position to check; >0 (right to left)
+    :return: Bool:  True if bit is set
+    """
+    if value & (1 << (bit - 1)):
+        return True
