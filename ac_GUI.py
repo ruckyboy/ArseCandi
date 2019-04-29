@@ -164,7 +164,7 @@ class VenuesPanel(wx.Panel):
             ColumnDefn("Device", "left", -1, 1, minimumWidth=150, isSpaceFilling=True, isSearchable=False),
             ColumnDefn("Ping", "right", -1, "ping", fixedWidth=100, isSearchable=False)])
         # Ping is a generated result
-        self.device_olv.SortBy(1)
+        self.device_olv.SortBy(0)
         self.device_olv.SetBackgroundColour(COLOUR_EVEN_LISTROW)
         self.device_olv.evenRowsBackColor = wx.Colour(COLOUR_EVEN_LISTROW)
         self.device_olv.oddRowsBackColor = wx.Colour(COLOUR_ODD_LISTROW)
@@ -670,13 +670,13 @@ class VenuesPanel(wx.Panel):
                 VB41: Chrome; Suffix=/viewer/live/en/live.html Size=1100x743
                 VB50: Firefox; Suffix=/sample/lvahuge.html; Size=833x780
                 VB60: Chrome; Suffix=/viewer/live/en/live.html; Size=810x745
-                SonyCam: Firefox; Suffix=/en/JViewer.html; Size=860x590
+                SNC-RZ50P: Firefox; Suffix=/en/JViewer.html; Size=860x590
                 """
                 # TODO Placeholders until live
                 # camera_type = "VB60"
                 # camera_ip = "136.142.166.244"
 
-                if camera_type == "SonyCam":
+                if camera_type == "SNC-RZ50P":
                     viewer_url = f"http://{camera_ip}/en/JViewer.html"
                     win_size = (860, 590)
                     ext_browser = "Firefox"
@@ -1009,7 +1009,7 @@ class VenuesPanel(wx.Panel):
         for row in range(self.device_olv.GetItemCount()):
             venue_device_names.append(self.device_olv.GetItemText(row, 1))
 
-        if "Touch Panel - AMX" or "Touch Panel - Extron" in venue_device_names:
+        if "Touch Panel - AMX" in venue_device_names or "Touch Panel - Extron" in venue_device_names:
             apply_button_template(self.touchpanel_btn)
         else:
             apply_button_template(self.touchpanel_btn, "disabled")
@@ -1061,7 +1061,7 @@ class VenuesPanel(wx.Panel):
             # Todo simplify these repetitive statements also check sizing for each camera
             # Todo - also consider constructing all html in separate module
 
-            if camera_type == "SonyCam":
+            if camera_type == "SNC-RZ50P":
                 cam_url = f"http://{camera_ip}/oneshotimage.jpg"
                 image_size_str = "width='352' height='230'"
             if camera_type in ["VB10", "VB50", "VB60"]:
@@ -1091,6 +1091,7 @@ class VenuesPanel(wx.Panel):
             if cam_image:
                 cam_html = "<!doctype html><meta http-equiv='X-UA-Compatible' content='IE=edge' /><html><head>" \
                            "<style type='text/css'>" \
+                           "<body{background-color: #000000;}>" \
                            "div{height: 210px; width: 335px; display: inline-block; " \
                            "vertical-align: top; position: relative;} " \
                            "video{max-height: 100%; max-width: 100%; width: auto; height: auto; " \
