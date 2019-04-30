@@ -164,7 +164,7 @@ class VenuesPanel(wx.Panel):
             ColumnDefn("Device", "left", -1, 1, minimumWidth=150, isSpaceFilling=True, isSearchable=False),
             ColumnDefn("Ping", "right", -1, "ping", fixedWidth=100, isSearchable=False)])
         # Ping is a generated result
-        self.device_olv.SortBy(0)
+        # self.device_olv.SortBy(0)
         self.device_olv.SetBackgroundColour(COLOUR_EVEN_LISTROW)
         self.device_olv.evenRowsBackColor = wx.Colour(COLOUR_EVEN_LISTROW)
         self.device_olv.oddRowsBackColor = wx.Colour(COLOUR_ODD_LISTROW)
@@ -518,10 +518,11 @@ class VenuesPanel(wx.Panel):
 
         if "Extron" in (self.device_olv.GetSelectedObject()[1]):
             if "Touch Panel" in (self.device_olv.GetSelectedObject()[1]):
-                extension = self.device_olv.GetSelectedObject()[2]
-                ipstring = f'https://{ipstring}/web/vtlp/{extension}/index.html#/main'
+                ipstring = self.device_olv.GetSelectedObject()[2]
+                # extension = self.device_olv.GetSelectedObject()[2]
+                # ipstring = f'https://{ipstring}/web/vtlp/{extension}/index.html#/main'
             else:
-                ipstring = f'https://admin:extron@{ipstring}'  # testing pasword....
+                ipstring = f'https://{ipstring}'  # testing pasword....
 
         if not right_click:
             progstring = prefs_dict["main_browser"]
@@ -586,10 +587,10 @@ class VenuesPanel(wx.Panel):
             if "Touch Panel - Extron" in (self.device_olv.GetItemText(row, 1)):
                 progstring = prefs_dict["main_browser"]
                 touchpanel= self.device_olv.GetObjectAt(row)
-                ipstring = touchpanel[0]
-                extension = touchpanel[2]
-                full_ipstring = f'https://{ipstring}/web/vtlp/{extension}/vtlp.html'
-                _launch_main_browser(progstring, full_ipstring)
+                # ipstring = touchpanel[0]
+                ipstring = touchpanel[2]
+                # full_ipstring = f'https://{ipstring}/web/vtlp/{extension}/vtlp.html'
+                _launch_main_browser(progstring, ipstring)
                 break
             elif "Touch Panel - AMX" in (self.device_olv.GetItemText(row, 1)):
                 progstring = prefs_dict["vnc"]
