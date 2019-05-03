@@ -43,7 +43,7 @@ def build_sims_json(sims_id):
 
         bookings_list = []
         cleaned_response = (req.text[1:-11])  # remove cruft from top and tail of response
-        loaded = json.loads(cleaned_response)
+        loaded = json.loads(cleaned_response, strict=False)
         # the return from the query is a mish mash of stuff, not json, no consistency in formatting, etc  X:(
         for booking in loaded[1:]:  # dump the first record - just structure info
             bookingdetail = {}

@@ -1029,7 +1029,7 @@ class VenuesPanel(wx.Panel):
 
     def populate_details_section(self, venue):
         self.venue_name_text.SetLabel(venue["name"])
-        self.building_name_text.SetValue(venue["building"])
+        self.building_name_text.SetValue(f'{venue["building"]} : {venue["websis"][3:6]}')
         self.room_number_text.SetValue(venue["code"])
         self.capacity_text.SetValue(str(venue["capacity"]))
         self.ctf_text.SetValue(venue["ctf"])
