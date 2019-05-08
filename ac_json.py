@@ -32,7 +32,7 @@ def build_sims_json(sims_id):
     sims_root = "https://applicant.sims.uwa.edu.au/connect/webconnect?" \
                 "pagecd=UPTMTBL&dataname=%7Cp_mode%7Cp_ret%7Cp_draft_ind%7Cp_uoos&datavalue=%7CVENUE%7CDTL%7CY%7C"
     # sims_query = parse.quote_plus('ARTS: [  G59] Fox Lecture Ha', safe='/&=')
-    sims_query = parse.quote_plus(sims_id, safe='/&=')
+    sims_query = parse.quote_plus(sims_id, safe='/=')   # removed '&' from safe list
 
     req, json_request_status = load_sims(sims_root, sims_query)
     if json_request_status == requests.codes.ok:

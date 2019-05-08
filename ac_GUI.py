@@ -660,7 +660,7 @@ class VenuesPanel(wx.Panel):
             if "WebCam" in (self.device_olv.GetItemText(row, 1)):
                 webcam = self.device_olv.GetObjectAt(row)   # Using underlying object (not olv row info)
                 camera_ip = webcam[0]   # self.device_olv.GetItemText(row, 0)
-                camera_type = webcam[4]     # self.device_olv.GetItemText(row, 4)
+                camera_type = webcam[5]     # self.device_olv.GetItemText(row, 4)
 
                 # venue = (self.venue_olv.GetSelectedObject())
                 # camera_type = venue["webcamtype"]
@@ -812,6 +812,7 @@ class VenuesPanel(wx.Panel):
         """
         Update the tooltip on the device objectlistview
         """
+
         pos = wx.GetMousePosition()
         mouse_pos = self.device_olv.ScreenToClient(pos)
         item_index, flag = self.device_olv.HitTest(mouse_pos)
@@ -821,9 +822,10 @@ class VenuesPanel(wx.Panel):
                 self.last_device = current_device
                 try:
                     cd_notes = current_device[3]
-                    cd_model = current_device[4]
-                    cd_flag = current_device[5]
-                    msg = f"Model: {cd_model}\nFlags: {cd_flag}\n{cd_notes}"
+                    cd_eq_notes = current_device[4]
+                    cd_model = current_device[5]
+                    cd_flag = current_device[6]
+                    msg = f"Model: {cd_model}\nFlags: {cd_flag}\n{cd_notes}\n{cd_eq_notes}"
                     self.device_olv.SetToolTip(msg)
                 except IndexError:
                     self.device_olv.SetToolTip("")
@@ -843,7 +845,7 @@ class VenuesPanel(wx.Panel):
             position 5: Dameware
         """
 
-        current_device = int(self.device_olv.GetSelectedObject()[5])
+        current_device = int(self.device_olv.GetSelectedObject()[6])
 
         if check_bit_set(current_device, 1):
             apply_button_template(self.telnet_btn)
@@ -1048,7 +1050,7 @@ class VenuesPanel(wx.Panel):
             if "WebCam" in (self.device_olv.GetItemText(row, 1)):
                 webcam = self.device_olv.GetObjectAt(row)
                 camera_ip = webcam[0]   # self.device_olv.GetItemText(row, 0)
-                camera_type = webcam[4]     # self.device_olv.GetItemText(row, 4)
+                camera_type = webcam[5]     # self.device_olv.GetItemText(row, 4)
 
         if camera_type:
             self.webcam_refresh_btn.SetToolTip(camera_ip)
@@ -1825,7 +1827,7 @@ class MainFrame(wx.Frame):
 
         # Tooltip delays seem to be across the app (not window/button specific)
         wx.ToolTip.SetDelay(800)
-        wx.ToolTip.SetAutoPop(4000)
+        wx.ToolTip.SetAutoPop(8000)
 
         self.main_panel = VenuesPanel(self)
         sizer.Add(self.main_panel, 1, wx.EXPAND, 5)
