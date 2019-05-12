@@ -1,5 +1,6 @@
 import time
 import subprocess
+import sys
 
 import wx
 import wx.html
@@ -522,7 +523,7 @@ class VenuesPanel(wx.Panel):
                 # extension = self.device_olv.GetSelectedObject()[2]
                 # ipstring = f'https://{ipstring}/web/vtlp/{extension}/index.html#/main'
             else:
-                ipstring = f'https://{ipstring}'  # testing pasword....
+                ipstring = f'https://{ipstring}'
 
         if not right_click:
             progstring = prefs_dict["main_browser"]
@@ -578,7 +579,6 @@ class VenuesPanel(wx.Panel):
             response = ac_utility.reboot_via_telnet(ipstring, user, pwd)
 
             MultiMessageBox(f'{venue_name} : {device_type}  [{ipstring}]', "Telnet Session Details...", response)
-
 
     def btn_touchpanel_evt(self, _):
         # opens a vnc or web session for the first listed venue touch-panel (depending on AMX or Extron type)
@@ -2205,7 +2205,10 @@ def bg_refresh_permitted(new_data=False):
 
 
 if __name__ == '__main__':
-    app = wx.App(False)
+    if 'log' in sys.argv[1:]:
+        app = wx.App(True, filename="ac_log.txt")
+    else:
+        app = wx.App(False)
     # a list of venue dictionaries, needed before drawing VenuesPanel
     venues_full, update_has_run, fail_msg = arsecandi.get_venue_list(DATA_DIR)
 
@@ -2221,4 +2224,5 @@ if __name__ == '__main__':
 
     # wx.lib.inspection.InspectionTool().Show()
     MainFrame(None).Show()
+    wx.Log.SetTimestamp('%Y-%m-%d %H:%M:%S')
     app.MainLoop()
