@@ -824,12 +824,18 @@ class VenuesPanel(wx.Panel):
                     cd_notes = current_device[3]
                     cd_eq_notes = current_device[4]
                     cd_model = current_device[5]
-                    cd_flag = current_device[6]
-                    msg = f"Model: {cd_model}\nFlags: {cd_flag}\n{cd_notes}\n{cd_eq_notes}"
+                    cd_login = f'{current_device[7]} [{current_device[8]}]'
+                    msg = f"Model: {cd_model}\n"
+                    if cd_login != " []":
+                        msg += f"Login: {cd_login}\n"
+                    if cd_notes:
+                        msg += f"{cd_notes}\n"
+                    if cd_eq_notes:
+                        msg += f"{cd_eq_notes}"
                     self.device_olv.SetToolTip(msg)
                 except IndexError:
                     self.device_olv.SetToolTip("")
-                    # Todo - currently webcam echo and PC don't have the above fields
+                    # Todo - currently PC doesn't have the above fields
         else:
             self.device_olv.SetToolTip("")
 
