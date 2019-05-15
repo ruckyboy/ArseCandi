@@ -7,7 +7,7 @@
 #
 # Created:      1 January 2019
 # Version:
-# Date:         17 March 2019
+# Date:         13 May 2019
 # Licence:
 # Tags:
 #----------------------------------------------------------------------------
@@ -23,7 +23,7 @@ __date__ = "09 April 2019"
 App
 """
 APP_NAME = "ArseCandi"
-BUILD_VER = "0.9.09_04_17"
+BUILD_VER = "0.9.13_05_17"
 
 """
 File and Folder

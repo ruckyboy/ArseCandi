@@ -720,54 +720,58 @@ class VenuesPanel(wx.Panel):
 
     def btn_airtable_evt(self, event):
         # opens a web browser to the venue's AirTable page
-        right_click = event.GetEventType() == 10035  # determine if the event type code is wx.EVT_RIGHT_UP
-        venue_record = self.venue_olv.GetSelectedObject()["id"]
+        if self.venue_olv.GetSelectedObject():
+            right_click = event.GetEventType() == 10035  # determine if the event type code is wx.EVT_RIGHT_UP
+            venue_record = self.venue_olv.GetSelectedObject()["id"]
 
-        progstring = prefs_dict["main_browser"]
-        airtable_prefix_string = prefs_dict["airtable_web"]
-        ipstring = f'{airtable_prefix_string}/{venue_record}'
-        _launch_main_browser(progstring, ipstring, right_click)
+            progstring = prefs_dict["main_browser"]
+            airtable_prefix_string = prefs_dict["airtable_web"]
+            ipstring = f'{airtable_prefix_string}/{venue_record}'
+            _launch_main_browser(progstring, ipstring, right_click)
 
     def btn_asana_evt(self, event):
         # opens a web browser to the venue's Asana tasks
-        right_click = event.GetEventType() == 10035
-        venue_record = self.venue_olv.GetSelectedObject()["asana"]
+        if self.venue_olv.GetSelectedObject():
+            right_click = event.GetEventType() == 10035
+            venue_record = self.venue_olv.GetSelectedObject()["asana"]
 
-        if venue_record == "":
-            msg_warn(self, "Venue has no associated Asana tag", self.venue_olv.GetSelectedObject()["name"])
-            return
+            if venue_record == "":
+                msg_warn(self, "Venue has no associated Asana tag", self.venue_olv.GetSelectedObject()["name"])
+                return
 
-        progstring = prefs_dict["main_browser"]
-        asana_prefix_string = "https://app.asana.com/0/"
-        ipstring = f'{asana_prefix_string}{venue_record}'
-        _launch_main_browser(progstring, ipstring, right_click)
+            progstring = prefs_dict["main_browser"]
+            asana_prefix_string = "https://app.asana.com/0/"
+            ipstring = f'{asana_prefix_string}{venue_record}'
+            _launch_main_browser(progstring, ipstring, right_click)
 
     def btn_websis_evt(self, event):
         # opens a web browser to venue's websis page
-        right_click = event.GetEventType() == 10035
-        venue_record = self.venue_olv.GetSelectedObject()["websis"]
+        if self.venue_olv.GetSelectedObject():
+            right_click = event.GetEventType() == 10035
+            venue_record = self.venue_olv.GetSelectedObject()["websis"]
 
-        if venue_record == "":
-            msg_warn(self, "Venue has no websis link", self.venue_olv.GetSelectedObject()["name"])
-            return
+            if venue_record == "":
+                msg_warn(self, "Venue has no websis link", self.venue_olv.GetSelectedObject()["name"])
+                return
 
-        progstring = prefs_dict["main_browser"]
-        websis_prefix_string = "http://sisfm-enquiry.fm.uwa.edu.au/sisfm-enquiry/mapEnquiry/default.aspx?loc_code="
-        ipstring = f'{websis_prefix_string}{venue_record}'
-        _launch_main_browser(progstring, ipstring, right_click)
+            progstring = prefs_dict["main_browser"]
+            websis_prefix_string = "http://sisfm-enquiry.fm.uwa.edu.au/sisfm-enquiry/mapEnquiry/default.aspx?loc_code="
+            ipstring = f'{websis_prefix_string}{venue_record}'
+            _launch_main_browser(progstring, ipstring, right_click)
 
     def btn_timetable_evt(self, event):
         # opens a new frame for venue's timetable (grid and list views)
-        sims_id = self.venue_olv.GetSelectedObject()["bookingid"]
-        venue_name = self.venue_olv.GetSelectedObject()["name"]
+        if self.venue_olv.GetSelectedObject():
+            sims_id = self.venue_olv.GetSelectedObject()["bookingid"]
+            venue_name = self.venue_olv.GetSelectedObject()["name"]
 
-        if not sims_id:
-            msg_warn(self, "Timetable information for this venue\rhas not been made available ", venue_name)
-            return
+            if not sims_id:
+                msg_warn(self, "Timetable information for this venue\rhas not been made available ", venue_name)
+                return
 
-        tt_html = ac_html.timetable_html(sims_id, venue_name)
+            tt_html = ac_html.timetable_html(sims_id, venue_name)
 
-        TimeTableFrame(f"{venue_name} Timetable", tt_html, parent=self.GetParent())
+            TimeTableFrame(f"{venue_name} Timetable", tt_html, parent=self.GetParent())
 
     def olv_venue_keydown_evt(self, event):  # TODO rename method, split up if it makes sense
         keycode = event.GetKeyCode()

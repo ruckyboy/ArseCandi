@@ -194,7 +194,7 @@ def build_icandi_json():
                         #     devicelist.append((echo360, "Echo 360", "0", "", "Echo 360", 4))
                         if pc:
                             for item in pc.split(', '):
-                                devicelist.append((item, "[Lectern PC]", "0", "", "PC", 16))
+                                devicelist.append((item, "[Lectern PC]", "0", "", "", "HP PC", 16, "", ""))
 
                         venue["networkdevice"] = devicelist
 
@@ -247,6 +247,6 @@ if __name__ == '__main__':
     # is_rebuilt, msg = build_icandi_json()
     # print(f'Database updated by build_icandi_json: {is_rebuilt}\nPassed Message: {msg}')
 
-    build_sims_json()
+    # build_sims_json()
 
     pass
