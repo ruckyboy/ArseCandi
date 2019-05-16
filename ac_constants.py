@@ -22,8 +22,8 @@ __date__ = "09 April 2019"
 """
 App
 """
-APP_NAME = "ArseCandi"
-BUILD_VER = "0.9.13_05_17"
+APP_NAME = "ArseCandi - Butterfly"
+BUILD_VER = "0.9.16_05_17"
 
 """
 File and Folder
@@ -91,17 +91,3 @@ COLOUR_BUTTON_TEXT_DISABLED = "#8E8E8E"
 COLOUR_BUTTON_TEXT_DARK = "#000000"
 COLOUR_BUTTON_TEXT_ACTIVE = "#0BA1F8"
 COLOUR_BUTTON_TEXT_ALERT = "#FF3300"
-
-""" 
-PyInstaller info
-pyinstaller.exe cli.py --name ArseCandi --onefile -w --uac-admin
-H:\Drive\PythonProjects\iCandi2018\venv\Scripts\pyinstaller.exe ac_GUI.py --name ArseCandi --onefile -w
-H:\Drive\PythonProjects\iCandi2018\venv\Scripts\pyinstaller.exe ac_GUI_gui.py --name ArseCandi --onefile -w --uac-admin
-Package up with Advanced Installer 15.9
-
---name ArseCandi    change name to ArseCandi; 
---onefile       in one executable file; 
---uac-admin     user access control: runs as admin
--w              do not show console window on .exe launch
-
-"""

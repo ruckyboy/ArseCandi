@@ -7,7 +7,7 @@ import wx.html
 import wx.html2
 import wx.grid
 from wx.lib.delayedresult import startWorker
-import wx.lib.inspection  # only used for inspecting wx widgets
+# import wx.lib.inspection  # only used for inspecting wx widgets
 from wx.adv import Sound
 from wx.adv import AboutDialogInfo
 from wx.lib.dialogs import MultiMessageBox as MultiMessageBox
@@ -37,6 +37,15 @@ webv:   WebViewer
 _run - internal application
 _launch - external application
 """
+
+import sys
+
+ef = open("errfile.log", "w")
+original_stderr = sys.stderr
+sys.stderr = ef
+lf = open("myfile.log", "w")
+original_stdout = sys.stdout
+sys.stdout = lf
 
 prefs_dict = ac_utility.preferences(DATA_DIR)
 
@@ -2068,6 +2077,11 @@ class MainFrame(wx.Frame):
 
     # Quits the frame... closing the window / app
     def quit_app(self, _):
+
+        sys.stderr = original_stderr
+        ef.close()
+        sys.stdout = original_stdout
+        lf.close()
         self.Close()
 
 
@@ -2217,6 +2231,7 @@ def bg_refresh_permitted(new_data=False):
 if __name__ == '__main__':
     if 'log' in sys.argv[1:]:
         app = wx.App(True, filename="ac_log.txt")
+        print(f'logging started: {time.localtime()}')
     else:
         app = wx.App(False)
     # a list of venue dictionaries, needed before drawing VenuesPanel
