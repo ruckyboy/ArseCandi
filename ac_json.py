@@ -194,7 +194,7 @@ def build_icandi_json():
                         #     devicelist.append((echo360, "Echo 360", "0", "", "Echo 360", 4))
                         if pc:
                             for item in pc.split(', '):
-                                devicelist.append((item, "[Lectern PC]", "0", "", "", "HP PC", 16, "", ""))
+                                devicelist.append((item, "[Lectern PC]", "0", "", "", "HP PC", "16", "", ""))
 
                         venue["networkdevice"] = devicelist
 
