@@ -1978,6 +1978,9 @@ class MainFrame(wx.Frame):
         self.main_panel.timer.Stop()  # Ensure the webcam monitor timer is stopped before exit
         del self.main_panel.timer  # precaution only - don't think it matters
 
+        sys.stderr.write(f'Error logging ended: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}\n')
+        print(f'Logging ended: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}')
+
         event.Skip()
 
     def timetable_menu_evt(self, _):
@@ -2073,15 +2076,6 @@ class MainFrame(wx.Frame):
 
     # Quits the frame... closing the window / app
     def quit_app(self, _):
-
-        if not error_file.closed:
-            sys.stderr.write(f'Error logging ended: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}')
-            sys.stderr = original_stderr
-            error_file.close()
-        if not log_file.closed:
-            print(f'Logging ended: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}')
-            sys.stdout = original_stdout
-            log_file.close()
 
         self.Close()
 
@@ -2231,15 +2225,15 @@ def bg_refresh_permitted(new_data=False):
 
 if __name__ == '__main__':
     if 'log' in sys.argv[1:]:
-        error_file = open("errlog.txt", "w")
+        error_file = open("errlog.txt", "a")
         original_stderr = sys.stderr
         sys.stderr = error_file
-        log_file = open("consolelog.txt", "w")
+        log_file = open("consolelog.txt", "a")
         original_stdout = sys.stdout
         sys.stdout = log_file
 
         print(f'Logging started: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}')
-        sys.stderr.write(f'Error logging started: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}')
+        sys.stderr.write(f'Error logging started: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}\n')
     app = wx.App(False)
     # a list of venue dictionaries, needed before drawing VenuesPanel
     venues_full, update_has_run, fail_msg = arsecandi.get_venue_list(DATA_DIR)
