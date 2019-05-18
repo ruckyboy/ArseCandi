@@ -617,7 +617,7 @@ class VenuesPanel(wx.Panel):
         except OSError as e:
             print("Dameware failed to run:", e)
             msg_warn(self, f"Dameware failed to run:\n{shellstring}\n{progstring}\n{computer_name_string}\n"
-                           f"Check: View -> Settings\n\n{e}")
+            f"Check: View -> Settings\n\n{e}")
 
     def btn_echo_evt(self, _):
         # opens a webpage for captures from the first listed Echo 360 device
@@ -626,7 +626,12 @@ class VenuesPanel(wx.Panel):
         venue_record = self.venue_olv.GetSelectedObject()["echo360"]
         for row in range(self.device_olv.GetItemCount()):
             if "Echo 360" in (self.device_olv.GetItemText(row, 1)):
-                full_ipstring = f'{echo_cap_url}{venue_record}'
+                # AV is a rule exception so it's hard coded, not what I like doing
+                if "AV Workshop" in self.venue_olv.GetSelectedObject()["name"]:
+                    full_ipstring = f'{echo_cap_url}#dateRange=allTime&campusId=26d9ec9b-8ebc-4f64-9731-f1a51960f530' \
+                        f'&buildingId=ed7a2d85-5669-49fd-b819-355d49746bc8'
+                else:
+                    full_ipstring = f'{echo_cap_url}{venue_record}'
                 _launch_main_browser(progstring, full_ipstring)
                 break
 
