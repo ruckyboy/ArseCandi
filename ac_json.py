@@ -161,7 +161,7 @@ def build_icandi_json():
                         venue["pc"] = fields.get("_PC", "")
                         # venue["webcam"] = fields.get("_WebCam", "")
                         # venue["webcamtype"] = fields.get("_WebCamType", "")
-                        # venue["echo360"] = fields.get("_Echo360", "")
+                        venue["echo360"] = fields.get("Venue Echo Link", "")
                         venue["websis"] = fields.get("Venue WebSIS Link", "")
                         venue["projection"] = fields.get("Projection", "")
                         venue["projector"] = fields.get("Projector", "")

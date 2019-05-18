@@ -147,6 +147,7 @@ DEFAULT_PREFS = {
     "timetable_url": "http://timetable.applications.uwa.edu.au/venue.html?",
     "res_booker_url": "https://resourcebooker.uwa.edu.au/#/app/booking-types",
     "echo_monitor_url": "echo360.org",
+    "echo_captures_url": "https://echo360.org.au/admin/captures",
     "camera_refresh": 5000,
     "ping_timeout": 1000,
     "ping_batch_size": 100,

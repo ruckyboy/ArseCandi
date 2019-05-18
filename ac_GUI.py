@@ -38,15 +38,6 @@ _run - internal application
 _launch - external application
 """
 
-import sys
-
-ef = open("errfile.log", "w")
-original_stderr = sys.stderr
-sys.stderr = ef
-lf = open("myfile.log", "w")
-original_stdout = sys.stdout
-sys.stdout = lf
-
 prefs_dict = ac_utility.preferences(DATA_DIR)
 
 
@@ -272,7 +263,7 @@ class VenuesPanel(wx.Panel):
         device_list_buttons_sizer.Add(self.pc_btn, 0,
                                       wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
 
-        self.echo_btn = wx.Button(self, wx.ID_ANY, "Echo 360", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        self.echo_btn = wx.Button(self, wx.ID_ANY, "Echo Captures", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
         self.echo_btn.SetToolTip("Opens device's web interface")
         apply_button_template(self.echo_btn)
         device_list_buttons_sizer.Add(self.echo_btn, 0,
@@ -524,8 +515,6 @@ class VenuesPanel(wx.Panel):
         right_click = event.GetEventType() == 10035  # determine if the event type code is wx.EVT_RIGHT_UP
         ipstring = self.device_olv.GetSelectedObject()[0]
 
-        # todo see if we can bypass extron logon page by passing 'https://admin:extron@{ipstring}' type string
-
         if "Extron" in (self.device_olv.GetSelectedObject()[1]):
             if "Touch Panel" in (self.device_olv.GetSelectedObject()[1]):
                 ipstring = self.device_olv.GetSelectedObject()[2]
@@ -533,6 +522,8 @@ class VenuesPanel(wx.Panel):
                 # ipstring = f'https://{ipstring}/web/vtlp/{extension}/index.html#/main'
             else:
                 ipstring = f'https://{ipstring}'
+        elif "Echo 360" in (self.device_olv.GetSelectedObject()[1]):
+            ipstring = f'https://admin:password@{ipstring}/advanced'
 
         if not right_click:
             progstring = prefs_dict["main_browser"]
@@ -595,7 +586,7 @@ class VenuesPanel(wx.Panel):
         for row in range(self.device_olv.GetItemCount()):
             if "Touch Panel - Extron" in (self.device_olv.GetItemText(row, 1)):
                 progstring = prefs_dict["main_browser"]
-                touchpanel= self.device_olv.GetObjectAt(row)
+                touchpanel = self.device_olv.GetObjectAt(row)
                 # ipstring = touchpanel[0]
                 ipstring = touchpanel[2]
                 # full_ipstring = f'https://{ipstring}/web/vtlp/{extension}/vtlp.html'
@@ -603,7 +594,7 @@ class VenuesPanel(wx.Panel):
                 break
             elif "Touch Panel - AMX" in (self.device_olv.GetItemText(row, 1)):
                 progstring = prefs_dict["vnc"]
-                touchpanel= self.device_olv.GetObjectAt(row)
+                touchpanel = self.device_olv.GetObjectAt(row)
                 ipstring = touchpanel[0]
                 self._launch_vnc(progstring, ipstring)
                 break
@@ -618,24 +609,24 @@ class VenuesPanel(wx.Panel):
                 break
 
         progstring = prefs_dict["dameware"]
-        shellstring = "runas.exe /savecred /user:uniwa\\" + prefs_dict["staff_id"]
+        shellstring = f"runas.exe /savecred /user:uniwa\\{prefs_dict['staff_id']} "
         try:
             # "runas.exe /savecred /user:uniwa\" + Preferences.UserAccountID + " """ + progstring + " -c: -m:" + ipstring + """"
             subprocess.Popen([shellstring, progstring, " -c: -m:", computer_name_string])
             # opens and logs into Dameware with new window with computerID passed - should ask for password only once
         except OSError as e:
             print("Dameware failed to run:", e)
-            msg_warn(self, f"Dameware failed to run:\n{progstring}\n{computer_name_string}\n"
-            f"Check: View -> Settings\n\n{e}")
+            msg_warn(self, f"Dameware failed to run:\n{shellstring}\n{progstring}\n{computer_name_string}\n"
+                           f"Check: View -> Settings\n\n{e}")
 
     def btn_echo_evt(self, _):
-        # opens a web? session for the first listed venue Echo 360 device
+        # opens a webpage for captures from the first listed Echo 360 device
         progstring = prefs_dict["main_browser"]
+        echo_cap_url = prefs_dict["echo_captures_url"]
+        venue_record = self.venue_olv.GetSelectedObject()["echo360"]
         for row in range(self.device_olv.GetItemCount()):
             if "Echo 360" in (self.device_olv.GetItemText(row, 1)):
-                echo = self.device_olv.GetObjectAt(row)
-                ipstring = echo[0]
-                full_ipstring = f'https://admin:password@{ipstring}/advanced'
+                full_ipstring = f'{echo_cap_url}{venue_record}'
                 _launch_main_browser(progstring, full_ipstring)
                 break
 
@@ -667,9 +658,9 @@ class VenuesPanel(wx.Panel):
         right_click = event.GetEventType() == 10035  # determine if the event type code is wx.EVT_RIGHT_UP
         for row in range(self.device_olv.GetItemCount()):
             if "WebCam" in (self.device_olv.GetItemText(row, 1)):
-                webcam = self.device_olv.GetObjectAt(row)   # Using underlying object (not olv row info)
-                camera_ip = webcam[0]   # self.device_olv.GetItemText(row, 0)
-                camera_type = webcam[5]     # self.device_olv.GetItemText(row, 4)
+                webcam = self.device_olv.GetObjectAt(row)  # Using underlying object (not olv row info)
+                camera_ip = webcam[0]  # self.device_olv.GetItemText(row, 0)
+                camera_type = webcam[5]  # self.device_olv.GetItemText(row, 4)
 
                 # venue = (self.venue_olv.GetSelectedObject())
                 # camera_type = venue["webcamtype"]
@@ -1068,8 +1059,8 @@ class VenuesPanel(wx.Panel):
         for row in range(self.device_olv.GetItemCount()):
             if "WebCam" in (self.device_olv.GetItemText(row, 1)):
                 webcam = self.device_olv.GetObjectAt(row)
-                camera_ip = webcam[0]   # self.device_olv.GetItemText(row, 0)
-                camera_type = webcam[5]     # self.device_olv.GetItemText(row, 4)
+                camera_ip = webcam[0]  # self.device_olv.GetItemText(row, 0)
+                camera_type = webcam[5]  # self.device_olv.GetItemText(row, 4)
 
         if camera_type:
             self.webcam_refresh_btn.SetToolTip(camera_ip)
@@ -1119,7 +1110,7 @@ class VenuesPanel(wx.Panel):
                            "video{max-height: 100%; max-width: 100%; width: auto; height: auto; " \
                            "position: absolute; top: 0; bottom: 0; left: 0; right: 0; margin: auto;}</style>" \
                            "<div><video autoplay loop muted playsinline>" \
-                           f"<source src='file:///{str(CAM_IMAGE_DIR / cam_image)}'/></video></div>" \
+                    f"<source src='file:///{str(CAM_IMAGE_DIR / cam_image)}'/></video></div>" \
                            "</head><body>" \
                            "</body></html>"
 
@@ -2078,10 +2069,13 @@ class MainFrame(wx.Frame):
     # Quits the frame... closing the window / app
     def quit_app(self, _):
 
-        sys.stderr = original_stderr
-        ef.close()
-        sys.stdout = original_stdout
-        lf.close()
+        if not error_file.closed:
+            sys.stderr = original_stderr
+            error_file.close()
+        if not log_file.closed:
+            sys.stdout = original_stdout
+            log_file.close()
+
         self.Close()
 
 
@@ -2230,10 +2224,17 @@ def bg_refresh_permitted(new_data=False):
 
 if __name__ == '__main__':
     if 'log' in sys.argv[1:]:
-        app = wx.App(True, filename="ac_log.txt")
+        error_file = open("errlog.txt", "w")
+        original_stderr = sys.stderr
+        sys.stderr = error_file
+        log_file = open("consolelog.txt", "w")
+        original_stdout = sys.stdout
+        sys.stdout = log_file
+
+        # app = wx.App(True, filename="ac_log.txt")
         print(f'logging started: {time.localtime()}')
-    else:
-        app = wx.App(False)
+
+    app = wx.App(False)
     # a list of venue dictionaries, needed before drawing VenuesPanel
     venues_full, update_has_run, fail_msg = arsecandi.get_venue_list(DATA_DIR)
 
