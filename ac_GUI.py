@@ -2075,9 +2075,11 @@ class MainFrame(wx.Frame):
     def quit_app(self, _):
 
         if not error_file.closed:
+            sys.stderr.write(f'Error logging ended: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}')
             sys.stderr = original_stderr
             error_file.close()
         if not log_file.closed:
+            print(f'Logging ended: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}')
             sys.stdout = original_stdout
             log_file.close()
 
@@ -2236,9 +2238,8 @@ if __name__ == '__main__':
         original_stdout = sys.stdout
         sys.stdout = log_file
 
-        # app = wx.App(True, filename="ac_log.txt")
-        print(f'logging started: {time.localtime()}')
-
+        print(f'Logging started: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}')
+        sys.stderr.write(f'Error logging started: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}')
     app = wx.App(False)
     # a list of venue dictionaries, needed before drawing VenuesPanel
     venues_full, update_has_run, fail_msg = arsecandi.get_venue_list(DATA_DIR)
@@ -2255,5 +2256,4 @@ if __name__ == '__main__':
 
     # wx.lib.inspection.InspectionTool().Show()
     MainFrame(None).Show()
-    wx.Log.SetTimestamp('%Y-%m-%d %H:%M:%S')
     app.MainLoop()
