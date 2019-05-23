@@ -17,13 +17,13 @@ This module contains all the constants used by ArseCandi.
 from pathlib import Path
 
 __author__ = "Peter Todd <peter.todd@uwa.edu.au>"
-__date__ = "09 April 2019"
+__date__ = "25 May 2019"
 
 """
 App
 """
-APP_NAME = "ArseCandi - Butterfly"
-BUILD_VER = "0.9.16_05_17"
+APP_NAME = "ArseCandi - Bubbles"
+BUILD_VER = "0.9.19_05_25"
 
 """
 File and Folder

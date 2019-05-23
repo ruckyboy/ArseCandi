@@ -2047,6 +2047,7 @@ class MainFrame(wx.Frame):
             if update_ready:
                 venues_full = venues_full_tmp
                 self.PopStatusText(2)
+                self.status_bar.SetBackgroundColour("#0BA1F8")
                 self.PushStatusText("New data available: click to update", 2)
                 self.status_bar.Enable()
             else:
@@ -2066,6 +2067,7 @@ class MainFrame(wx.Frame):
 
         current_time = time.strftime('%d %b %Y %H:%M:%S', time.localtime())
         current_data_date = ac_utility.get_file_timestamp(DATA_DIR / "icandi.json")
+        self.status_bar.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW))
         self.PopStatusText(2)
         self.PushStatusText(f"Current data date: {current_data_date}", 1)
         self.PushStatusText(f"Last checked for updates: {current_time}", 2)
