@@ -161,9 +161,9 @@ class VenuesPanel(wx.Panel):
         self.device_olv = ObjectListView(self, wx.ID_ANY | wx.EXPAND, wx.DefaultPosition, wx.Size(-1, -1),
                                          sortable=False, style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.NO_BORDER)
         self.device_olv.SetColumns([
-            ColumnDefn("Address", "left", -1, 0, fixedWidth=105, isSearchable=False),
-            ColumnDefn("Device", "left", -1, 1, minimumWidth=150, isSpaceFilling=True, isSearchable=False),
-            ColumnDefn("Ping", "right", -1, "ping", fixedWidth=100, isSearchable=False)])
+            ColumnDefn("Address", "left", -1, 0, fixedWidth=100, isSearchable=False),
+            ColumnDefn("Device", "left", -1, 1, minimumWidth=140, isSpaceFilling=True, isSearchable=False),
+            ColumnDefn("Ping", "right", -1, "ping", fixedWidth=90, isSearchable=False)])
         # Ping is a generated result
         # self.device_olv.SortBy(0)
         self.device_olv.SetBackgroundColour(COLOUR_EVEN_LISTROW)
@@ -263,7 +263,7 @@ class VenuesPanel(wx.Panel):
         device_list_buttons_sizer.Add(self.pc_btn, 0,
                                       wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
 
-        self.echo_btn = wx.Button(self, wx.ID_ANY, "Echo Captures", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        self.echo_btn = wx.Button(self, wx.ID_ANY, "360 Capture", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
         self.echo_btn.SetToolTip("Opens device's web interface")
         apply_button_template(self.echo_btn)
         device_list_buttons_sizer.Add(self.echo_btn, 0,
@@ -612,7 +612,8 @@ class VenuesPanel(wx.Panel):
         shellstring = f"runas.exe /savecred /user:uniwa\\{prefs_dict['staff_id']} "
         try:
             # "runas.exe /savecred /user:uniwa\" + Preferences.UserAccountID + " """ + progstring + " -c: -m:" + ipstring + """"
-            subprocess.Popen([shellstring, progstring, " -c: -m:", computer_name_string])
+            subprocess.Popen([progstring, " -c: -m:", computer_name_string])
+            # subprocess.Popen([shellstring, progstring, " -c: -m:", computer_name_string])
             # opens and logs into Dameware with new window with computerID passed - should ask for password only once
         except OSError as e:
             print("Dameware failed to run:", e)
