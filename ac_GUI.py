@@ -65,7 +65,8 @@ class VenuesPanel(wx.Panel):
         fnt.SetPointSize(APP_FS + 1)
         self.SetFont(fnt)
 
-        self.timer = wx.Timer(self)
+        self.cam_refresh_timer = wx.Timer(self)
+        self.autoping_timer = wx.Timer(self)    # adds a short delay before pinging all venues devices
         self.cam_html = None
 
         self.last_device = None  # keeping track of tooltip messages to prevent flicker
@@ -205,7 +206,7 @@ class VenuesPanel(wx.Panel):
 
         self.autoping_btn = wx.ToggleButton(self, wx.ID_ANY, "Auto-Ping", wx.DefaultPosition, wx.DefaultSize,
                                             wx.NO_BORDER)
-        self.autoping_btn.SetToolTip("Automatically ping listed venue devices\n(* Will effect the speed of navigation)")
+        self.autoping_btn.SetToolTip("Automatically ping listed venue devices\n(* Can effect the speed of navigation)")
         apply_button_template(self.autoping_btn, "active_toggle" if self.autoping_active else "default")
 
         device_list_buttons_sizer.Add(self.autoping_btn, 0,
@@ -468,7 +469,6 @@ class VenuesPanel(wx.Panel):
         ### Setup event binding connections
         """
         self.venues_search_tb.Bind(wx.EVT_TEXT, self.txt_venues_filter_by_search_evt)
-        self.venues_search_tb.Bind(wx.EVT_TEXT_ENTER, self.filter_venues_olv)
         self.venues_search_tb.Bind(wx.EVT_SEARCHCTRL_CANCEL_BTN, self.txt_venues_search_clear_evt)
         self.venue_olv.Bind(wx.EVT_LIST_ITEM_SELECTED, self.olv_venue_selected_evt)
         self.venue_olv.Bind(wx.EVT_KEY_DOWN, self.olv_venue_keydown_evt)
@@ -502,7 +502,8 @@ class VenuesPanel(wx.Panel):
         self.websis_btn.Bind(wx.EVT_RIGHT_UP, self.btn_websis_evt)
         self.timetable_btn.Bind(wx.EVT_BUTTON, self.btn_timetable_evt)
         self.image_viewer.Bind(wx.EVT_LEFT_DCLICK, self.btn_websis_evt)
-        self.Bind(wx.EVT_TIMER, self.tmr_webcam_update, self.timer)
+        self.Bind(wx.EVT_TIMER, self.tmr_webcam_update, self.cam_refresh_timer)
+        self.Bind(wx.EVT_TIMER, self._run_venue_ping, self.autoping_timer)
 
         self.device_olv.Select(0)  # only needed to trigger device button formatting when app first started
 
@@ -644,12 +645,12 @@ class VenuesPanel(wx.Panel):
     def btn_webcam_refresh_evt(self, _):
         # wx.CallLater(1000, self.tt_viewer.Reload, flags=1)  # One shot refresh after 1 second
         frequency = prefs_dict["camera_refresh"]  # 1000 = One second refresh rate
-        if self.timer.IsRunning():
-            self.timer.Stop()
+        if self.cam_refresh_timer.IsRunning():
+            self.cam_refresh_timer.Stop()
             self.webcam_refresh_btn.SetLabel("Monitor")
             apply_button_template(self.webcam_refresh_btn)
         else:
-            self.timer.Start(frequency)
+            self.cam_refresh_timer.Start(frequency)
             self.webcam_refresh_btn.SetLabel("Monitoring")
             apply_button_template(self.webcam_refresh_btn, "active_toggle")
 
@@ -664,14 +665,10 @@ class VenuesPanel(wx.Panel):
         right_click = event.GetEventType() == 10035  # determine if the event type code is wx.EVT_RIGHT_UP
         for row in range(self.device_olv.GetItemCount()):
             if "WebCam" in (self.device_olv.GetItemText(row, 1)):
-                webcam = self.device_olv.GetObjectAt(row)  # Using underlying object (not olv row info)
-                camera_ip = webcam[0]  # self.device_olv.GetItemText(row, 0)
-                camera_type = webcam[5]  # self.device_olv.GetItemText(row, 4)
+                webcam = self.device_olv.GetObjectAt(row)  # Using underlying model object (not olv row info)
+                camera_ip = webcam[0]
+                camera_type = webcam[5]
 
-                # venue = (self.venue_olv.GetSelectedObject())
-                # camera_type = venue["webcamtype"]
-                # camera_ip = venue["webcam"]
-                win_size = (640, 480)
                 """
                 Camera controls
                 VB41: Chrome; Suffix=/viewer/live/en/live.html Size=1100x743
@@ -897,6 +894,7 @@ class VenuesPanel(wx.Panel):
         else:
             self.venue_textsearch_filter = Filter.TextSearch(self.venue_olv, text=self.venues_search_tb.GetValue())
             # ^ Searches for matching text in venue_olv columns
+            self.filter_venues_olv(None)
 
     def ckb_venues_filter_by_ctf_evt(self, event):
         choice = event.GetSelection()
@@ -990,8 +988,9 @@ class VenuesPanel(wx.Panel):
 
         if self.device_olv.GetItemCount():
             self.button_group_visibility(True)
-            if self.autoping_active:  # this filter runs on venue_select, we might as well auto-ping on change of state
-                self._run_venue_ping()
+            # since this filter runs on venue_select, we might as well auto-ping on change of state
+            if self.autoping_active:
+                self.autoping_timer.StartOnce(900)
         else:
             self.button_group_visibility(False)
 
@@ -1832,7 +1831,8 @@ class MainFrame(wx.Frame):
         win_width, win_height = prefs_dict["win_size"]
         win_max = prefs_dict["win_max"]
         self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
-        self.SetIcon(wx.Icon(str(RESOURCE_DIR) + "/64-Candy-icon.png", wx.BITMAP_TYPE_PNG))
+        # self.SetIcon(wx.Icon(str(RESOURCE_DIR) + "/64-Candy-icon.png", wx.BITMAP_TYPE_PNG))
+        self.SetIcon(wx.Icon(str(RESOURCE_DIR) + "/64_candy_icon.ico"))
         self.SetMinSize(wx.Size(1412, 768))
         if not win_max:
             self.SetSize(win_width, win_height)
@@ -1976,8 +1976,9 @@ class MainFrame(wx.Frame):
                                    (win_x + 25, win_y + 25))  # +25 fix autohide top taskbar
 
         self.main_panel.Hide()  # for some reason raises c++ assert error if this panel still shows when closing?!?!
-        self.main_panel.timer.Stop()  # Ensure the webcam monitor timer is stopped before exit
-        del self.main_panel.timer  # precaution only - don't think it matters
+        self.main_panel.cam_refresh_timer.Stop()  # Ensure that the timers are stopped before exit
+        self.main_panel.autoping_timer.Stop()
+        del self.main_panel.cam_refresh_timer  # precaution only - don't think it matters
 
         sys.stderr.write(f'Error logging ended: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}\n')
         print(f'Logging ended: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}')

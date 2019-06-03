@@ -32,10 +32,10 @@ class MyForm(wx.Frame):
             self.selfcall = True
             self.on_timer()
             self.toggleBtn.SetLabel("Start")
-            print("timer stopped!")
-            # self.timer.Destroy() # use on closing
+            print("cam_refresh_timer stopped!")
+            # self.cam_refresh_timer.Destroy() # use on closing
         else:
-            print("starting timer...")
+            print("starting cam_refresh_timer...")
             self.timer.Start(1000)
             self.toggleBtn.SetLabel("Stop")
             self.selfcall = False
@@ -49,7 +49,7 @@ class MyForm(wx.Frame):
     def on_timer(self):
         print('on_time called')
         if self.selfcall:
-            print("self-calling CallLater timer")
+            print("self-calling CallLater cam_refresh_timer")
             wx.CallLater(2000, self.on_timer)
 
 
