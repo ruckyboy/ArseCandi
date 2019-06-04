@@ -32,37 +32,44 @@ def build_sims_json(sims_id):
     sims_root = "https://applicant.sims.uwa.edu.au/connect/webconnect?" \
                 "pagecd=UPTMTBL&dataname=%7Cp_mode%7Cp_ret%7Cp_draft_ind%7Cp_uoos&datavalue=%7CVENUE%7CDTL%7CY%7C"
     # sims_query = parse.quote_plus('ARTS: [  G59] Fox Lecture Ha', safe='/&=')
-    sims_query = parse.quote_plus(sims_id, safe='/=')   # removed '&' from safe list
+    sims_query = parse.quote_plus(sims_id, safe='/=')  # removed '&' from safe list
 
+    # the return from the query is a mish mash of stuff, not json, no consistency in formatting/validation, etc  X:(
     req, json_request_status = load_sims(sims_root, sims_query)
     if json_request_status == requests.codes.ok:
 
         today_iso = datetime.now().date()
         current_year, current_week, _ = today_iso.isocalendar()
         # current_week = 4
-
         bookings_list = []
-        cleaned_response = (req.text[1:-11])  # remove cruft from top and tail of response
-        loaded = json.loads(cleaned_response, strict=False)
-        # the return from the query is a mish mash of stuff, not json, no consistency in formatting, etc  X:(
+
+        clean_response = ""
+        trimmed_response = (req.text[1:-11])  # remove cruft from top and tail of response
+        # dropping 'othdtl' field as it passes illegal characters on data entry -> ** slack validation by callista!
+        for line in trimmed_response.splitlines():
+            if "othdtl" not in line:
+                clean_response += line + "\n"
+            else:
+                clean_response += '\t\t"othdtl" : ""\n'
+
+        loaded = json.loads(clean_response, strict=False)
         for booking in loaded[1:]:  # dump the first record - just structure info
             bookingdetail = {}
             bookingdetail["title"] = booking.get("actLongFrm", "MISSING").replace("_", " ")
             bookingdetail["day"] = booking.get("day", "MISSING")
             bookingdetail["duration"] = booking.get("sttoend", "MISSING")
-            # bookingdetail["weeknos"] = booking.get("wknos", "MISSING")
 
             weeks = booking.get("wknos", "MISSING").split(',')
             while "" in weeks:
                 weeks.remove("")
             bookingdetail["weeks"] = list(map(int, weeks))
 
-            b_start, b_end = bookingdetail["duration"].split(" - ")   # split "duration" into start and end time strings
-            g_start = int(b_start.split(":")[0])    # convert the start string into int of hour value
+            b_start, b_end = bookingdetail["duration"].split(" - ")  # split "duration" into start and end time strings
+            g_start = int(b_start.split(":")[0])  # convert the start string into int of hour value
             bookingdetail["g_start"] = g_start if g_start > 7 else 7  # grid start time is no less than 7
-            g_end = int(b_end.split(":")[0])    # convert the start string into int of hour value
+            g_end = int(b_end.split(":")[0])  # convert the start string into int of hour value
             if g_end == 0:
-                g_end = 24   # make booking times finish at 24:00 hours (not 00:00)
+                g_end = 24  # make booking times finish at 24:00 hours (not 00:00)
             bookingdetail["g_span"] = g_end - g_start
 
             if current_week in bookingdetail["weeks"]:
@@ -150,7 +157,7 @@ def build_icandi_json():
                         venue["name"] = fields.get("Venue Name", "MISSING")
                         venue["code"] = fields.get("Room code", "MISSING")
                         venue["building"] = fields.get("_Building", "Unknown")
-                        venue["bookingid"] = fields.get("Booking ID", "")   # Callista code
+                        venue["bookingid"] = fields.get("Booking ID", "")  # Callista code
                         venue["aka"] = fields.get("AKA", "")
                         venue["capacity"] = int(fields.get("Capacity", 0))
                         venue["group"] = fields.get("Group", "Unknown")
@@ -177,7 +184,7 @@ def build_icandi_json():
                         if devicedata:
                             for d in devicedata:
                                 datalist = d.split(' ; ')
-                                if datalist[0]:     # if there's an ip address in the first position...
+                                if datalist[0]:  # if there's an ip address in the first position...
                                     devicelist.append(datalist)
 
                         # devicelist.sort()
