@@ -477,6 +477,7 @@ class VenuesPanel(wx.Panel):
         self.ctf_filter_ckb.Bind(wx.EVT_CHECKBOX, self.ckb_venues_filter_by_ctf_evt)
         self.controlled_filter_ckb.Bind(wx.EVT_CHECKBOX, self.ckb_venues_filter_by_control_evt)
         self.device_olv.Bind(wx.EVT_LIST_ITEM_SELECTED, self.olv_device_selected_evt)
+        self.device_olv.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.olv_device_right_click_evt)
         self.device_olv.Bind(wx.EVT_MOTION, self.olv_device_update_tooltip)
         self.flagged_ckb.Bind(wx.EVT_CHECKBOX, self.ckb_device_filter_toggle_evt)
         self.autoping_btn.Bind(wx.EVT_TOGGLEBUTTON, self.btn_autoping_toggle_evt)
@@ -848,8 +849,8 @@ class VenuesPanel(wx.Panel):
 
         event.Skip()
 
-    def olv_device_selected_evt(self, _):
-        """ This method just enables buttons dependant on the selected device
+    def olv_device_selected_evt(self, event):
+        """ This method enables buttons dependant on the selected device
             Button flags are set in iTurd and sent as an integer to be bitwise checked
             position 1: Telnet
             position 2: Telnet Reboot
@@ -878,6 +879,18 @@ class VenuesPanel(wx.Panel):
             apply_button_template(self.vnc_btn, "disabled")
 
         self.enable_group_buttons()
+
+    def olv_device_right_click_evt(self, _):
+        """
+            Copies the IP Address of the selected row to the clipboard
+        """
+
+        if not wx.TheClipboard.IsOpened():
+            clip_data = wx.TextDataObject()
+            clip_data.SetText(self.device_olv.GetSelectedObject()[0])
+            wx.TheClipboard.Open()
+            wx.TheClipboard.SetData(clip_data)
+            wx.TheClipboard.Close()
 
     """
     ### Filtering - Venues List 
