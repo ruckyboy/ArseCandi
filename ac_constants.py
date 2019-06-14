@@ -6,8 +6,8 @@
 # Author:       Peter Todd
 #
 # Created:      1 January 2019
-# Version:
-# Date:         13 May 2019
+# Version:      0.9
+# Date:         1 June 2019
 # Licence:
 # Tags:
 #----------------------------------------------------------------------------
@@ -17,13 +17,13 @@ This module contains all the constants used by ArseCandi.
 from pathlib import Path
 
 __author__ = "Peter Todd <peter.todd@uwa.edu.au>"
-__date__ = "25 May 2019"
+__date__ = "1st June 2019"
 
 """
 App
 """
-APP_NAME = "ArseCandi - Bubbles"
-BUILD_VER = "0.9.19_05_25"
+APP_NAME = "ArseCandi"
+BUILD_VER = "0.9.19_06_01"
 
 """
 File and Folder
