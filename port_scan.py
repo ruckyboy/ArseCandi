@@ -7,6 +7,7 @@ from datetime import datetime
 # remoteServer = input("Enter a remote host to scan: ")
 # remoteServer = "10.109.16.54"   # Sanders G06 ULXD4
 remoteServer = "10.109.8.119"   # Park Ave LT ULXD4
+remoteServer = "10.109.16.105"   # Simmonds LT Panasonic projector - Port 1024 default
 remoteServerIP = socket.gethostbyname(remoteServer)
 
 # Print a nice banner with information on which host we are about to scan
@@ -20,12 +21,10 @@ print("-" * 60)
 # Check what time the scan started
 t1 = datetime.now()
 
-# Using the range function to specify ports (here it will scans all ports between 1 and 1024)
-
-# We also put in some error handling for catching errors
+wwb6_ports = [21, 23, 2202, 8023, 64000, 68, 5568, 8427]
 
 try:
-    for port in [21, 23, 2202, 8023, 64000, 68, 5568, 8427]:
+    for port in wwb6_ports:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(0.5)
         result = sock.connect_ex((remoteServerIP, port))

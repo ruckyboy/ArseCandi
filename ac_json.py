@@ -75,10 +75,10 @@ def build_sims_json(sims_id):
             if current_week in bookingdetail["weeks"]:
                 bookings_list.append(bookingdetail)
 
-        # todo we can not bother writing to disk after testing
-        temp_json_file = DATA_DIR / "sims.json"
-        with temp_json_file.open("w") as file:
-            json.dump(bookings_list, file, indent=2)
+        # write to disk - just for testing
+        # temp_json_file = DATA_DIR / "sims.json"
+        # with temp_json_file.open("w") as file:
+        #     json.dump(bookings_list, file, indent=2)
 
         return bookings_list
 

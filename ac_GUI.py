@@ -21,6 +21,8 @@ from ac_utility import check_bit_set
 import ac_ping
 import ac_html
 
+# TODO  Add tabbed notebook for details / photos / equipment details
+
 """  
 Naming Abbreviations:
 
@@ -551,7 +553,6 @@ class VenuesPanel(wx.Panel):
     def btn_telnet_evt(self, _):
         # opens a telnet shell session
         progstring = prefs_dict["telnet"]
-        # TODO reinstate below for uwa use
         ipstring = self.device_olv.GetSelectedObject()[0]
         # ipstring = "35.160.169.47"  # Testing only
         try:
@@ -576,7 +577,6 @@ class VenuesPanel(wx.Panel):
             user = "administrator"
             pwd = "password"
         if dlg == wx.YES:
-            # TODO reinstate below for uwa use
             ipstring = self.device_olv.GetSelectedObject()[0]
             response = ac_utility.reboot_via_telnet(ipstring, user, pwd)
 
@@ -677,9 +677,6 @@ class VenuesPanel(wx.Panel):
                 VB60: Chrome; Suffix=/viewer/live/en/live.html; Size=810x745
                 SNC-RZ50P: Firefox; Suffix=/en/JViewer.html; Size=860x590
                 """
-                # TODO Placeholders until live
-                # camera_type = "VB60"
-                # camera_ip = "136.142.166.244"
 
                 if camera_type == "SNC-RZ50P":
                     viewer_url = f"http://{camera_ip}/en/JViewer.html"
@@ -1106,8 +1103,6 @@ class VenuesPanel(wx.Panel):
             # TODO consider saving values in prefs as a dictionary formatted as string?
             # TODO then we can edit each value in an advanced preferences dialogue rather than hard coding
             # TODO still need to condense /normalise code in this method
-            # TODO next lines are placeholder until proper url is programmed
-            # cam_url = "http://136.142.166.244/-wvhttp-01-/GetOneShot?"  # it's a VB60
             cam_html = "<!doctype html><meta http-equiv='X-UA-Compatible' content='IE=edge' /><html><head></head>" \
                        "<body style='margin: 0px; overflow: hidden;'><img alt='Camera Offline'" \
                 f" {image_size_str} src='{cam_url}'/></body></html>"
@@ -1180,8 +1175,6 @@ class VenuesPanel(wx.Panel):
 
     def btn_ping_evt(self, _):
         """ runs a ping on the selected device """
-        # TODO at some point look at stopping multiple clicks from queuing - fixed it I think 17/2/19
-        # Todo - check other buttons for the same?
         # NOTE neither enable() or show() prevent mouse event queuing - ie. clicks still register
 
         self.ping_btn.Hide()

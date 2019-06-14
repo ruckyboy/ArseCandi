@@ -214,7 +214,6 @@ def _set_default_preferences(file_location):
 
 
 # TODO examine and workout watch-strings and responses, take into account DGX needs login
-# Code below is test code - using rainmaker.wunderground.com as telnet service
 
 
 def reboot_via_telnet(ip="rainmaker.wunderground.com", user=None, password=None):
@@ -290,29 +289,6 @@ def reboot_via_telnet(ip="rainmaker.wunderground.com", user=None, password=None)
         except (TimeoutError, socket.timeout):
             print("Could not connect to host")
             ret_str += f"Could not connect to {ip} \r\n"
-
-        # ###### rainmaker test script
-        # strg = tn.read_until(b"to continue:").decode('ascii')
-        # print(strg)
-        # ret_str += strg
-        # inp = ""
-        # tn.write(inp.encode('ascii') + b"\n")
-        # strg = tn.read_until(b"code--").decode('ascii')
-        # print(strg)
-        # ret_str += strg
-        # inp = ""
-        # tn.write(inp.encode('ascii') + b"\n")
-        #
-        # while inp != "x":
-        #     strg = tn.read_until(b"Selection:", 2).decode('ascii')
-        #     print(strg)
-        #     ret_str += strg
-        #     inp = input("?")
-        #     tn.write(inp.encode('ascii') + b"\n")
-        #     ret_str += inp + "\n"
-        #
-        # time.sleep(1)
-        # tn.write(inp.encode('ascii') + b"\n")
 
     ret_str += "\r\n" + "#" * 50 + "\r\n"
     return ret_str
