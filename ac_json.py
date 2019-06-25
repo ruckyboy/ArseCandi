@@ -187,6 +187,9 @@ def build_icandi_json():
                                 if datalist[0]:  # if there's an ip address in the first position...
                                     devicelist.append(datalist)
 
+                        # devicelist.sort(key=lambda x: x[0])
+                        devicelist.sort()   # Sorts by first element of inner list item by default
+
                         # devicelist.sort()
                         # add, pc, web cam and echo360 to the device/ip collection
                         pc = fields.get("_PC", "")

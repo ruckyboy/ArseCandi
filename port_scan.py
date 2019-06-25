@@ -7,7 +7,8 @@ from datetime import datetime
 # remoteServer = input("Enter a remote host to scan: ")
 # remoteServer = "10.109.16.54"   # Sanders G06 ULXD4
 remoteServer = "10.109.8.119"   # Park Ave LT ULXD4
-remoteServer = "10.109.16.105"   # Simmonds LT Panasonic projector - Port 1024 default
+# remoteServer = "10.109.16.105"   # Simmonds LT Panasonic projector - Port 1024 default
+remoteServer = "10.109.16.107"   # Simmonds LT ULXD4
 remoteServerIP = socket.gethostbyname(remoteServer)
 
 # Print a nice banner with information on which host we are about to scan
@@ -46,11 +47,6 @@ except socket.error:
     print("Couldn't connect to server")
     sys.exit()
 
-# Checking the time again
 t2 = datetime.now()
-
-# Calculates the difference of time, to see how long it took to run the script
 total = t2 - t1
-
-# Printing the information to screen
 print('Scanning Completed in: ', total)
