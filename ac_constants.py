@@ -7,7 +7,7 @@
 #
 # Created:      1 January 2019
 # Version:      0.9
-# Date:         1 June 2019
+# Date:         13 June 2019
 # Licence:
 # Tags:
 #----------------------------------------------------------------------------
@@ -17,13 +17,13 @@ This module contains all the constants used by ArseCandi.
 from pathlib import Path
 
 __author__ = "Peter Todd <peter.todd@uwa.edu.au>"
-__date__ = "1st June 2019"
+__date__ = "13 June 2019"
 
 """
 App
 """
-APP_NAME = "ArseCandi"
-BUILD_VER = "0.9.19_06_01"
+APP_NAME = "iCandi - like a phoenix"
+BUILD_VER = "0.9.9.19_8_05"
 
 """
 File and Folder

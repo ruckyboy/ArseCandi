@@ -164,7 +164,7 @@ class VenuesPanel(wx.Panel):
         self.device_olv = ObjectListView(self, wx.ID_ANY | wx.EXPAND, wx.DefaultPosition, wx.Size(-1, -1),
                                          sortable=False, style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.NO_BORDER)
         self.device_olv.SetColumns([
-            ColumnDefn("Address", "left", -1, 0, fixedWidth=100, isSearchable=False),
+            ColumnDefn("Address", "left", -1, 0, minimumWidth=100, isSearchable=False),
             ColumnDefn("Device", "left", -1, 1, minimumWidth=140, isSpaceFilling=True, isSearchable=False),
             ColumnDefn("Ping", "right", -1, "ping", fixedWidth=90, isSearchable=False)])
         # Ping is a generated result
@@ -174,9 +174,9 @@ class VenuesPanel(wx.Panel):
         self.device_olv.oddRowsBackColor = wx.Colour(COLOUR_ODD_LISTROW)
         self.device_olv.SetEmptyListMsg("No devices")
         self.device_olv.SetEmptyListMsgColors(wx.WHITE, wx.Colour(COLOUR_EVEN_LISTROW))
-        self.device_olv.SetSizeHints((365, 325), (555, -1))
+        self.device_olv.SetSizeHints((365, 325), (545, -1))
 
-        self.device_olv.SetMinSize(wx.Size(365, 325))
+        # self.device_olv.SetMinSize(wx.Size(365, 325))
 
         device_list_sizer.Add(self.device_olv, 2, wx.ALL | wx.EXPAND, 0)
 
@@ -199,7 +199,7 @@ class VenuesPanel(wx.Panel):
 
         device_list_sizer.Add(devicelist_filter_sizer, 0, wx.EXPAND, 5)
 
-        device_box_sizer.Add(device_list_sizer, 1, wx.ALL | wx.EXPAND, 5)
+        device_box_sizer.Add(device_list_sizer, 2, wx.ALL | wx.EXPAND, 5)
 
         self.device_button_line = wx.StaticLine(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_VERTICAL)
         device_box_sizer.Add(self.device_button_line, 0, wx.BOTTOM | wx.TOP | wx.EXPAND, 5)
@@ -263,8 +263,7 @@ class VenuesPanel(wx.Panel):
         self.pc_btn = wx.Button(self, wx.ID_ANY, "DameWare", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
         self.pc_btn.SetToolTip("Opens first PC in device list")
         apply_button_template(self.pc_btn)
-        device_list_buttons_sizer.Add(self.pc_btn, 0,
-                                      wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+        device_list_buttons_sizer.Add(self.pc_btn, 0, wx.RIGHT | wx.BOTTOM | wx.EXPAND, 5)  # Removed reserve space
 
         self.echo_btn = wx.Button(self, wx.ID_ANY, "360 Capture", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
         self.echo_btn.SetToolTip("Opens device's web interface")
@@ -276,7 +275,7 @@ class VenuesPanel(wx.Panel):
         device_section_sizer.Add(device_box_sizer, 5, wx.ALL | wx.EXPAND, 5)
 
         """ Device List spacer """
-        device_section_sizer.Add(wx.Size(500, 0))
+        device_section_sizer.Add(wx.Size(450, 0))
 
         """ WebCam Viewer """
         webcam_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -848,12 +847,11 @@ class VenuesPanel(wx.Panel):
 
     def olv_device_selected_evt(self, event):
         """ This method enables buttons dependant on the selected device
-            Button flags are set in iTurd and sent as an integer to be bitwise checked
+            Button flags are set in iTard and sent as an integer to be bitwise checked
             position 1: Telnet
             position 2: Telnet Reboot
             position 3: Web Control
             position 4: VNC
-            position 5: Dameware
         """
 
         current_device = int(self.device_olv.GetSelectedObject()[6])
@@ -1042,7 +1040,8 @@ class VenuesPanel(wx.Panel):
         else:
             apply_button_template(self.touchpanel_btn, "disabled")
         if "[Lectern PC]" in venue_device_names:
-            apply_button_template(self.pc_btn)
+            # apply_button_template(self.pc_btn)   # Disable Dameware button until needed in the future - maybe :/
+            self.pc_btn.Hide()
         else:
             apply_button_template(self.pc_btn, "disabled")
         if "Echo 360" in venue_device_names:
@@ -1837,7 +1836,6 @@ class MainFrame(wx.Frame):
         win_width, win_height = prefs_dict["win_size"]
         win_max = prefs_dict["win_max"]
         self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
-        # self.SetIcon(wx.Icon(str(RESOURCE_DIR) + "/64-Candy-icon.png", wx.BITMAP_TYPE_PNG))
         self.SetIcon(wx.Icon(str(RESOURCE_DIR) + "/64_candy_icon.ico"))
         self.SetMinSize(wx.Size(1412, 768))
         if not win_max:
@@ -1875,13 +1873,13 @@ class MainFrame(wx.Frame):
         self.view = wx.Menu()
 
         # instantiate a Menu Item object and add to Menu
-        self.main_item = wx.MenuItem(self.file, wx.ID_ANY, "&Main", "View main window", wx.ITEM_NORMAL)
+        self.main_item = wx.MenuItem(self.view, wx.ID_ANY, "&Main", "View main window", wx.ITEM_NORMAL)
         self.view.Append(self.main_item)
         self.main_item.Enable(False)
-        self.settings_item = wx.MenuItem(self.file, wx.ID_ANY, "&Settings", "View or Change ArseCandi options",
+        self.settings_item = wx.MenuItem(self.view, wx.ID_ANY, "&Settings", "View or Change ArseCandi options",
                                          wx.ITEM_NORMAL)
         self.view.Append(self.settings_item)
-        self.report_item = wx.MenuItem(self.file, wx.ID_ANY, "Stats &Report", "A few statistics", wx.ITEM_NORMAL)
+        self.report_item = wx.MenuItem(self.view, wx.ID_ANY, "Stats &Report", "A few statistics", wx.ITEM_NORMAL)
         self.view.Append(self.report_item)
         self.view.AppendSeparator()  # add a separator to Menu
         self.view.Append(wx.ID_ABOUT, "About")
@@ -1892,15 +1890,15 @@ class MainFrame(wx.Frame):
         exit_item = wx.MenuItem(self.file, wx.ID_EXIT, "&Exit", wx.EmptyString, wx.ITEM_NORMAL)
         self.file.Append(exit_item)
 
-        self.timetable_item = wx.MenuItem(self.file, wx.ID_ANY, "&Timetable", "Timetable Website", wx.ITEM_NORMAL)
+        self.timetable_item = wx.MenuItem(self.tools, wx.ID_ANY, "&Timetable", "Timetable Website", wx.ITEM_NORMAL)
         self.tools.Append(self.timetable_item)
-        self.booker_item = wx.MenuItem(self.file, wx.ID_ANY, "&Resource Booker", "Resource Booker Website",
+        self.booker_item = wx.MenuItem(self.tools, wx.ID_ANY, "&Resource Booker", "Resource Booker Website",
                                        wx.ITEM_NORMAL)
         self.tools.Append(self.booker_item)
         self.tools.AppendSeparator()
-        self.echo_item = wx.MenuItem(self.file, wx.ID_ANY, "&Echo 360", "Echo 360 Monitor", wx.ITEM_NORMAL)
+        self.echo_item = wx.MenuItem(self.tools, wx.ID_ANY, "&Echo 360", "Echo 360 Monitor", wx.ITEM_NORMAL)
         self.tools.Append(self.echo_item)
-        self.workbench_item = wx.MenuItem(self.file, wx.ID_ANY, "&Wireless Workbench", "Shure Wireless Workbench 6",
+        self.workbench_item = wx.MenuItem(self.tools, wx.ID_ANY, "&Wireless Workbench", "Shure Wireless Workbench 6",
                                           wx.ITEM_NORMAL)
         self.tools.Append(self.workbench_item)
 
@@ -2057,6 +2055,7 @@ class MainFrame(wx.Frame):
                 self.PopStatusText(2)
                 self.status_bar.SetBackgroundColour("#0BA1F8")
                 self.PushStatusText("New data available: click to update", 2)
+                self.status_bar.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW))
                 self.status_bar.Enable()
             else:
                 current_time = time.strftime('%d %b %Y %H:%M:%S', time.localtime())
@@ -2079,6 +2078,7 @@ class MainFrame(wx.Frame):
         self.PopStatusText(2)
         self.PushStatusText(f"Current data date: {current_data_date}", 1)
         self.PushStatusText(f"Last checked for updates: {current_time}", 2)
+        self.PushStatusText("", 0)
 
     def status_click_evt(self, _):
         self._push_new_data()
@@ -2166,7 +2166,7 @@ def on_about(_):
                 Asana
                 WebSiS
                 Callista
-                DameWare(10)64bit
+                * DameWare(10)64bit (not enabled)
                 telnetUltra
                 UltraVNC
                 Wireless Workbench 6
