@@ -9,6 +9,9 @@ from datetime import datetime
 remoteServer = "10.109.8.119"   # Park Ave LT ULXD4
 # remoteServer = "10.109.16.105"   # Simmonds LT Panasonic projector - Port 1024 default
 remoteServer = "10.109.16.107"   # Simmonds LT ULXD4
+remoteServer = "10.0.0.1"   # local
+
+
 remoteServerIP = socket.gethostbyname(remoteServer)
 
 # Print a nice banner with information on which host we are about to scan
