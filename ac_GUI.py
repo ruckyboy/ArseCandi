@@ -68,7 +68,7 @@ class VenuesPanel(wx.Panel):
         self.SetFont(fnt)
 
         self.cam_refresh_timer = wx.Timer(self)
-        self.autoping_timer = wx.Timer(self)    # adds a short delay before pinging all venues devices
+        self.autoping_timer = wx.Timer(self)  # adds a short delay before pinging all venues devices
         self.cam_html = None
 
         self.last_device = None  # keeping track of tooltip messages to prevent flicker
@@ -164,7 +164,7 @@ class VenuesPanel(wx.Panel):
         self.device_olv = ObjectListView(self, wx.ID_ANY | wx.EXPAND, wx.DefaultPosition, wx.Size(-1, -1),
                                          sortable=False, style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.NO_BORDER)
         self.device_olv.SetColumns([
-            ColumnDefn("Address", "left", -1, 0, fixedWidth=100, isSearchable=False),
+            ColumnDefn("Address", "left", -1, 0, minimumWidth=100, isSearchable=False),
             ColumnDefn("Device", "left", -1, 1, minimumWidth=140, isSpaceFilling=True, isSearchable=False),
             ColumnDefn("Ping", "right", -1, "ping", fixedWidth=90, isSearchable=False)])
         # Ping is a generated result
@@ -174,9 +174,9 @@ class VenuesPanel(wx.Panel):
         self.device_olv.oddRowsBackColor = wx.Colour(COLOUR_ODD_LISTROW)
         self.device_olv.SetEmptyListMsg("No devices")
         self.device_olv.SetEmptyListMsgColors(wx.WHITE, wx.Colour(COLOUR_EVEN_LISTROW))
-        self.device_olv.SetSizeHints((365, 325), (555, -1))
+        self.device_olv.SetSizeHints((365, 325), (545, -1))
 
-        self.device_olv.SetMinSize(wx.Size(365, 325))
+        # self.device_olv.SetMinSize(wx.Size(365, 325))
 
         device_list_sizer.Add(self.device_olv, 2, wx.ALL | wx.EXPAND, 0)
 
@@ -199,7 +199,7 @@ class VenuesPanel(wx.Panel):
 
         device_list_sizer.Add(devicelist_filter_sizer, 0, wx.EXPAND, 5)
 
-        device_box_sizer.Add(device_list_sizer, 1, wx.ALL | wx.EXPAND, 5)
+        device_box_sizer.Add(device_list_sizer, 2, wx.ALL | wx.EXPAND, 5)
 
         self.device_button_line = wx.StaticLine(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_VERTICAL)
         device_box_sizer.Add(self.device_button_line, 0, wx.BOTTOM | wx.TOP | wx.EXPAND, 5)
@@ -263,11 +263,16 @@ class VenuesPanel(wx.Panel):
         self.pc_btn = wx.Button(self, wx.ID_ANY, "DameWare", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
         self.pc_btn.SetToolTip("Opens first PC in device list")
         apply_button_template(self.pc_btn)
-        device_list_buttons_sizer.Add(self.pc_btn, 0,
+        device_list_buttons_sizer.Add(self.pc_btn, 0, wx.RIGHT | wx.BOTTOM | wx.EXPAND, 5)  # Removed reserve space
+
+        self.echo_mon_btn = wx.Button(self, wx.ID_ANY, "Echo Monitor", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        self.echo_mon_btn.SetToolTip("Opens web interface for monitoring current activity")
+        apply_button_template(self.echo_mon_btn)
+        device_list_buttons_sizer.Add(self.echo_mon_btn, 0,
                                       wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
 
-        self.echo_btn = wx.Button(self, wx.ID_ANY, "360 Capture", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
-        self.echo_btn.SetToolTip("Opens device's web interface")
+        self.echo_btn = wx.Button(self, wx.ID_ANY, "Echo Captures", wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        self.echo_btn.SetToolTip("View this venue's captures in a web interface")
         apply_button_template(self.echo_btn)
         device_list_buttons_sizer.Add(self.echo_btn, 0,
                                       wx.RIGHT | wx.BOTTOM | wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
@@ -276,7 +281,7 @@ class VenuesPanel(wx.Panel):
         device_section_sizer.Add(device_box_sizer, 5, wx.ALL | wx.EXPAND, 5)
 
         """ Device List spacer """
-        device_section_sizer.Add(wx.Size(500, 0))
+        device_section_sizer.Add(wx.Size(450, 0))
 
         """ WebCam Viewer """
         webcam_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -492,6 +497,7 @@ class VenuesPanel(wx.Panel):
         self.reboot_btn.Bind(wx.EVT_BUTTON, self.btn_reboot_evt)
         self.touchpanel_btn.Bind(wx.EVT_BUTTON, self.btn_touchpanel_evt)
         self.pc_btn.Bind(wx.EVT_BUTTON, self.btn_dameware_evt)
+        self.echo_mon_btn.Bind(wx.EVT_BUTTON, self.btn_echo_mon_evt)
         self.echo_btn.Bind(wx.EVT_BUTTON, self.btn_echo_evt)
         self.cam_viewer.Bind(wx.html2.EVT_WEBVIEW_ERROR, self.webv_webcam_err_evt)
         self.webcam_refresh_btn.Bind(wx.EVT_TOGGLEBUTTON, self.btn_webcam_refresh_evt)
@@ -568,7 +574,7 @@ class VenuesPanel(wx.Panel):
         device_type = self.device_olv.GetSelectedObject()[1]
         venue_name = self.venue_olv.GetSelectedObject()['name']
         message = f"You are about to reboot the {device_type} \nin {venue_name}" \
-            f"\n\nAre you sure that you want to continue?\n\n"
+                  f"\n\nAre you sure that you want to continue?\n\n"
         # MessageBox and MultiMessageBox - automatically call .ShowModal() when instantiated and .Destroy() when closed
         dlg = wx.MessageBox(message, "Rebooting - is it a good idea?", wx.YES_NO | wx.ICON_WARNING)
         user = None
@@ -620,7 +626,24 @@ class VenuesPanel(wx.Panel):
         except OSError as e:
             print("Dameware failed to run:", e)
             msg_warn(self, f"Dameware failed to run:\n{shellstring}\n{progstring}\n{computer_name_string}\n"
-            f"Check: View -> Settings\n\n{e}")
+                           f"Check: View -> Settings\n\n{e}")
+
+    def btn_echo_mon_evt(self, _):
+        # opens a webpage for monitoring Echo 360 device (slow roll-out of this only 5 devices @ 15/9/2019)
+        progstring = prefs_dict["main_browser"]
+        # TODO Notice hard coding - again try to put this in preferences maybe?
+        echo_mon_url = "https://app.echo360.org.au/capture/?institution=3db867e1-3876-45f2-9651-4e18857c6760&room="
+        venue_record = self.venue_olv.GetSelectedObject()["echo360"]
+        mon_code = venue_record[-36:]
+        for row in range(self.device_olv.GetItemCount()):
+            if "Echo 360" in (self.device_olv.GetItemText(row, 1)):
+                # AV is a rule exception so it's hard coded, not what I like doing
+                if "AV Workshop" in self.venue_olv.GetSelectedObject()["name"]:
+                    full_ipstring = f'{echo_mon_url}ed7a2d85-5669-49fd-b819-355d49746bc8'
+                else:
+                    full_ipstring = f'{echo_mon_url}{mon_code}'
+                _launch_main_browser(progstring, full_ipstring)
+                break
 
     def btn_echo_evt(self, _):
         # opens a webpage for captures from the first listed Echo 360 device
@@ -632,7 +655,7 @@ class VenuesPanel(wx.Panel):
                 # AV is a rule exception so it's hard coded, not what I like doing
                 if "AV Workshop" in self.venue_olv.GetSelectedObject()["name"]:
                     full_ipstring = f'{echo_cap_url}#dateRange=allTime&campusId=26d9ec9b-8ebc-4f64-9731-f1a51960f530' \
-                        f'&buildingId=ed7a2d85-5669-49fd-b819-355d49746bc8'
+                                    f'&buildingId=ed7a2d85-5669-49fd-b819-355d49746bc8'
                 else:
                     full_ipstring = f'{echo_cap_url}{venue_record}'
                 _launch_main_browser(progstring, full_ipstring)
@@ -848,12 +871,11 @@ class VenuesPanel(wx.Panel):
 
     def olv_device_selected_evt(self, event):
         """ This method enables buttons dependant on the selected device
-            Button flags are set in iTurd and sent as an integer to be bitwise checked
+            Button flags are set in iTard and sent as an integer to be bitwise checked
             position 1: Telnet
             position 2: Telnet Reboot
             position 3: Web Control
             position 4: VNC
-            position 5: Dameware
         """
 
         current_device = int(self.device_olv.GetSelectedObject()[6])
@@ -1042,12 +1064,16 @@ class VenuesPanel(wx.Panel):
         else:
             apply_button_template(self.touchpanel_btn, "disabled")
         if "[Lectern PC]" in venue_device_names:
-            apply_button_template(self.pc_btn)
+            # apply_button_template(self.pc_btn)   # Disable Dameware button until needed in the future - maybe :/
+            self.pc_btn.Hide()
         else:
-            apply_button_template(self.pc_btn, "disabled")
+            self.pc_btn.Hide()
+            # apply_button_template(self.pc_btn, "disabled")
         if "Echo 360" in venue_device_names:
+            apply_button_template(self.echo_mon_btn)
             apply_button_template(self.echo_btn)
         else:
+            apply_button_template(self.echo_mon_btn, "disabled")
             apply_button_template(self.echo_btn, "disabled")
 
     def update_device_count(self):
@@ -1105,7 +1131,7 @@ class VenuesPanel(wx.Panel):
             # TODO still need to condense /normalise code in this method
             cam_html = "<!doctype html><meta http-equiv='X-UA-Compatible' content='IE=edge' /><html><head></head>" \
                        "<body style='margin: 0px; overflow: hidden;'><img alt='Camera Offline'" \
-                f" {image_size_str} src='{cam_url}'/></body></html>"
+                       f" {image_size_str} src='{cam_url}'/></body></html>"
             self.cam_html = cam_html
 
         else:
@@ -1123,7 +1149,7 @@ class VenuesPanel(wx.Panel):
                            "video{max-height: 100%; max-width: 100%; width: auto; height: auto; " \
                            "position: absolute; top: 0; bottom: 0; left: 0; right: 0; margin: auto;}</style>" \
                            "<div><video autoplay loop muted playsinline>" \
-                    f"<source src='file:///{str(CAM_IMAGE_DIR / cam_image)}'/></video></div>" \
+                           f"<source src='file:///{str(CAM_IMAGE_DIR / cam_image)}'/></video></div>" \
                            "</head><body>" \
                            "</body></html>"
 
@@ -1150,7 +1176,7 @@ class VenuesPanel(wx.Panel):
                 "width: 256px; max-height: 167px;" \
                 "} </style></head>" \
                 "<body style='margin: 8px; overflow: hidden;'><div>" \
-                    f"<img src='{websis_building_image}' onerror='this.onerror=\"\"; src=\"{default_image}\";'/>" \
+                f"<img src='{websis_building_image}' onerror='this.onerror=\"\"; src=\"{default_image}\";'/>" \
                 "</div></body></html>"
             # !Be aware of the funky quote formatting on the img source line - it's deliberate
             #  The little bit of code will insert a default image if the called one is missing
@@ -1614,7 +1640,7 @@ class StatisticsReport(wx.Panel):
         info_sizer.Add(self.version_text, 0, wx.ALIGN_CENTER | wx.ALL, 5)
 
         self.info_text = wx.StaticText(self, wx.ID_ANY, f"AirTable data last changed:\n"
-        f"{ac_utility.get_file_timestamp(DATA_DIR / 'icandi.json')}",
+                                                        f"{ac_utility.get_file_timestamp(DATA_DIR / 'icandi.json')}",
                                        wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTRE)
         self.info_text.Wrap(-1)
         self.info_text.SetFont(
@@ -1837,7 +1863,6 @@ class MainFrame(wx.Frame):
         win_width, win_height = prefs_dict["win_size"]
         win_max = prefs_dict["win_max"]
         self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
-        # self.SetIcon(wx.Icon(str(RESOURCE_DIR) + "/64-Candy-icon.png", wx.BITMAP_TYPE_PNG))
         self.SetIcon(wx.Icon(str(RESOURCE_DIR) + "/64_candy_icon.ico"))
         self.SetMinSize(wx.Size(1412, 768))
         if not win_max:
@@ -1875,13 +1900,13 @@ class MainFrame(wx.Frame):
         self.view = wx.Menu()
 
         # instantiate a Menu Item object and add to Menu
-        self.main_item = wx.MenuItem(self.file, wx.ID_ANY, "&Main", "View main window", wx.ITEM_NORMAL)
+        self.main_item = wx.MenuItem(self.view, wx.ID_ANY, "&Main", "View main window", wx.ITEM_NORMAL)
         self.view.Append(self.main_item)
         self.main_item.Enable(False)
-        self.settings_item = wx.MenuItem(self.file, wx.ID_ANY, "&Settings", "View or Change ArseCandi options",
+        self.settings_item = wx.MenuItem(self.view, wx.ID_ANY, "&Settings", "View or Change ArseCandi options",
                                          wx.ITEM_NORMAL)
         self.view.Append(self.settings_item)
-        self.report_item = wx.MenuItem(self.file, wx.ID_ANY, "Stats &Report", "A few statistics", wx.ITEM_NORMAL)
+        self.report_item = wx.MenuItem(self.view, wx.ID_ANY, "Stats &Report", "A few statistics", wx.ITEM_NORMAL)
         self.view.Append(self.report_item)
         self.view.AppendSeparator()  # add a separator to Menu
         self.view.Append(wx.ID_ABOUT, "About")
@@ -1892,15 +1917,15 @@ class MainFrame(wx.Frame):
         exit_item = wx.MenuItem(self.file, wx.ID_EXIT, "&Exit", wx.EmptyString, wx.ITEM_NORMAL)
         self.file.Append(exit_item)
 
-        self.timetable_item = wx.MenuItem(self.file, wx.ID_ANY, "&Timetable", "Timetable Website", wx.ITEM_NORMAL)
+        self.timetable_item = wx.MenuItem(self.tools, wx.ID_ANY, "&Timetable", "Timetable Website", wx.ITEM_NORMAL)
         self.tools.Append(self.timetable_item)
-        self.booker_item = wx.MenuItem(self.file, wx.ID_ANY, "&Resource Booker", "Resource Booker Website",
+        self.booker_item = wx.MenuItem(self.tools, wx.ID_ANY, "&Resource Booker", "Resource Booker Website",
                                        wx.ITEM_NORMAL)
         self.tools.Append(self.booker_item)
         self.tools.AppendSeparator()
-        self.echo_item = wx.MenuItem(self.file, wx.ID_ANY, "&Echo 360", "Echo 360 Monitor", wx.ITEM_NORMAL)
+        self.echo_item = wx.MenuItem(self.tools, wx.ID_ANY, "&Echo 360", "Echo 360 Monitor", wx.ITEM_NORMAL)
         self.tools.Append(self.echo_item)
-        self.workbench_item = wx.MenuItem(self.file, wx.ID_ANY, "&Wireless Workbench", "Shure Wireless Workbench 6",
+        self.workbench_item = wx.MenuItem(self.tools, wx.ID_ANY, "&Wireless Workbench", "Shure Wireless Workbench 6",
                                           wx.ITEM_NORMAL)
         self.tools.Append(self.workbench_item)
 
@@ -2057,6 +2082,7 @@ class MainFrame(wx.Frame):
                 self.PopStatusText(2)
                 self.status_bar.SetBackgroundColour("#0BA1F8")
                 self.PushStatusText("New data available: click to update", 2)
+                self.status_bar.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW))
                 self.status_bar.Enable()
             else:
                 current_time = time.strftime('%d %b %Y %H:%M:%S', time.localtime())
@@ -2079,6 +2105,7 @@ class MainFrame(wx.Frame):
         self.PopStatusText(2)
         self.PushStatusText(f"Current data date: {current_data_date}", 1)
         self.PushStatusText(f"Last checked for updates: {current_time}", 2)
+        self.PushStatusText("", 0)
 
     def status_click_evt(self, _):
         self._push_new_data()
@@ -2166,7 +2193,7 @@ def on_about(_):
                 Asana
                 WebSiS
                 Callista
-                DameWare(10)64bit
+                * DameWare(10)64bit (not enabled)
                 telnetUltra
                 UltraVNC
                 Wireless Workbench 6

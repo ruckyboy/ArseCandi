@@ -3,6 +3,16 @@ import subprocess
 import sys
 from datetime import datetime
 
+# Ask for input
+# remoteServer = input("Enter a remote host to scan: ")
+# remoteServer = "10.109.16.54"   # Sanders G06 ULXD4
+remoteServer = "10.109.8.119"   # Park Ave LT ULXD4
+# remoteServer = "10.109.16.105"   # Simmonds LT Panasonic projector - Port 1024 default
+remoteServer = "10.109.16.107"   # Simmonds LT ULXD4
+# remoteServer = "10.0.0.1"   # local
+
+
+remoteServerIP = socket.gethostbyname(remoteServer)
 
 def test_port_list(curr_port_set):
     try:
