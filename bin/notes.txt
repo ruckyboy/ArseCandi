@@ -25,11 +25,11 @@ Use ip allocation notes on mouse hover in device list
 PyInstaller info
 pyinstaller.exe cli.py --name ArseCandi --onefile -w --uac-admin
 "C:\Users\00042923\Python Projects\Scripts\pyinstaller.exe" ac_GUI.py --name Butterfly --onefile -w
-H:\Drive\PythonProjects\iCandi2018\venv\Scripts\pyinstaller.exe ac_GUI.py --name ArseCandi --onefile -w
-H:\Drive\PythonProjects\iCandi2018\venv\Scripts\pyinstaller.exe ac_GUI.py --name ArseCandi --onefile -w --uac-admin
+H:\Drive\PythonProjects\iCandi2018\venv\Scripts\pyinstaller.exe ac_GUI.py --name iCandi --onefile -w
+H:\Drive\PythonProjects\iCandi2018\venv\Scripts\pyinstaller.exe ac_GUI.py --name iCandi --onefile -w --uac-admin
 Package up with Advanced Installer 15.9
 
---name ArseCandi    change name to ArseCandi;
+--name iCandi    change name to iCandi;
 --onefile       in one executable file;
 --uac-admin     user access control: runs as admin
 -w              do not show console window on .exe launch

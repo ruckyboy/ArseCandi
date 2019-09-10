@@ -1292,7 +1292,7 @@ class SettingsPanel(wx.Panel):
             <p><b>File Locations:</b><ul><li>Chrome is the preferred Main Browser</li>
             <li>IE or Edge for the Alternative Browser</li><li>Dameware's 64bit mini-remote (DWRCC.exe)</li>
             <li>VNC: Give preference to UltraVNC</li><li>Telnet: either from the Windows\WinSxS directory</li>
-            <li>or use TelnetUltra in ArseCandi's bin folder</li></ul></p>
+            <li>or use TelnetUltra in iCandi's bin folder</li></ul></p>
             """)
 
         self.htmlwin.SetBackgroundColour(COLOUR_PANEL_BG)
@@ -1903,7 +1903,7 @@ class MainFrame(wx.Frame):
         self.main_item = wx.MenuItem(self.view, wx.ID_ANY, "&Main", "View main window", wx.ITEM_NORMAL)
         self.view.Append(self.main_item)
         self.main_item.Enable(False)
-        self.settings_item = wx.MenuItem(self.view, wx.ID_ANY, "&Settings", "View or Change ArseCandi options",
+        self.settings_item = wx.MenuItem(self.view, wx.ID_ANY, "&Settings", "View or Change iCandi options",
                                          wx.ITEM_NORMAL)
         self.view.Append(self.settings_item)
         self.report_item = wx.MenuItem(self.view, wx.ID_ANY, "Stats &Report", "A few statistics", wx.ITEM_NORMAL)
@@ -2053,7 +2053,7 @@ class MainFrame(wx.Frame):
         self.PopStatusText(1)
         prev_sb2_text = self.status_bar.GetStatusText(2)
         self.PopStatusText(2)
-        self.PushStatusText("ArseCandi: Checking for updates", 2)
+        self.PushStatusText("iCandi: Checking for updates", 2)
 
         startWorker(self._process_update, self._run_silent_update, cargs=(prev_sb1_text, prev_sb2_text,), jobID=6969)
 
@@ -2278,8 +2278,8 @@ if __name__ == '__main__':
     if fail_msg:
         msg_warn(None, fail_msg)
         if not venues_full:
-            msg_warn(None, "No local or remote data available\n\nNothing to load => Closing ArseCandi")
-            print('No data: shutting down ArseCandi')
+            msg_warn(None, "No local or remote data available\n\nNothing to load => Closing iCandi")
+            print('No data: shutting down iCandi')
             quit()
 
     # If we've just loaded data from Airtable, we don't need to do another refresh in the background

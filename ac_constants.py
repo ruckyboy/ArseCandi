@@ -12,7 +12,7 @@
 # Tags:
 #----------------------------------------------------------------------------
 """
-This module contains all the constants used by ArseCandi.
+This module contains all the constants used by ArseCandi (aka iCandi).
 """
 from pathlib import Path
 
@@ -22,8 +22,8 @@ __date__ = "13 June 2019"
 """
 App
 """
-APP_NAME = "iCandi - like a phoenix"
-BUILD_VER = "0.9.9.19_8_05"
+APP_NAME = "iCandi - like a butchered phoenix"
+BUILD_VER = "0.9.9.19_9_09"
 
 """
 File and Folder
