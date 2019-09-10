@@ -2185,7 +2185,7 @@ def on_about(_):
     about_info.SetName(APP_NAME)
     about_info.SetVersion(BUILD_VER)
     about_info.SetDescription(
-        """\n          A Really Self Evident Computer and Network Device Interface
+        """\n          integrated Computer and Network Device Interface
         \n       [ Consolidating front-end for the monitoring and control of remote        
              Audio-Visual devices installed within the UWA campus network ]\n\n
         Connections exist for the following applications:\n        
@@ -2193,7 +2193,6 @@ def on_about(_):
                 Asana
                 WebSiS
                 Callista
-                * DameWare(10)64bit (not enabled)
                 telnetUltra
                 UltraVNC
                 Wireless Workbench 6
