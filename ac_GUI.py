@@ -1906,9 +1906,9 @@ class MainFrame(wx.Frame):
         self.settings_item = wx.MenuItem(self.view, wx.ID_ANY, "&Settings", "View or Change iCandi options",
                                          wx.ITEM_NORMAL)
         self.view.Append(self.settings_item)
-        self.report_item = wx.MenuItem(self.view, wx.ID_ANY, "Stats &Report", "A few statistics", wx.ITEM_NORMAL)
-        self.view.Append(self.report_item)
-        self.view.AppendSeparator()  # add a separator to Menu
+        # self.report_item = wx.MenuItem(self.view, wx.ID_ANY, "Stats &Report", "A few statistics", wx.ITEM_NORMAL)
+        # self.view.Append(self.report_item)
+        # self.view.AppendSeparator()  # add a separator to Menu
         self.view.Append(wx.ID_ABOUT, "About")
 
         self.refresh_item = wx.MenuItem(self.file, wx.ID_ANY, "&Refresh", "Refresh data from AirTable", wx.ITEM_NORMAL)
@@ -1956,7 +1956,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.refresh_menu_evt, id=self.refresh_item.GetId())
         self.Bind(wx.EVT_MENU, self.switch_panel, id=self.settings_item.GetId())
         self.Bind(wx.EVT_MENU, self.switch_panel, id=self.main_item.GetId())
-        self.Bind(wx.EVT_MENU, self.switch_panel, id=self.report_item.GetId())
+        # self.Bind(wx.EVT_MENU, self.switch_panel, id=self.report_item.GetId())
         self.Bind(wx.EVT_MENU, self.timetable_menu_evt, id=self.timetable_item.GetId())
         self.Bind(wx.EVT_MENU, self.booker_menu_evt, id=self.booker_item.GetId())
         self.Bind(wx.EVT_MENU, self.echo_menu_evt, id=self.echo_item.GetId())
@@ -1973,20 +1973,20 @@ class MainFrame(wx.Frame):
     def switch_panel(self, event):
         main_sel = event.GetId() == self.main_item.GetId()
         settings_sel = event.GetId() == self.settings_item.GetId()
-        report_sel = event.GetId() == self.report_item.GetId()
-        if report_sel:
-            self.SetTitle("Status Report")
-        elif settings_sel:
+        # report_sel = event.GetId() == self.report_item.GetId()
+        # if report_sel:
+        #     self.SetTitle("Status Report")
+        if settings_sel:
             self.SetTitle("Settings and Preferences")
         else:
             self.SetTitle(APP_NAME)
 
         self.main_item.Enable(not main_sel)
         self.settings_item.Enable(not settings_sel)
-        self.report_item.Enable(not report_sel)
+        # self.report_item.Enable(not report_sel)
 
         self.settings_panel.Show(settings_sel)
-        self.online_report.Show(report_sel)
+        # self.online_report.Show(report_sel)
         self.main_panel.Show(main_sel)
         self.Layout()
 
@@ -2029,7 +2029,7 @@ class MainFrame(wx.Frame):
         _launch_main_browser(progstring, ipstring)
 
     def echo_menu_evt(self, _):
-        # opens a web browser to the UWA Venue Timetable  page
+        # opens a web browser to the Echo monitor page
         progstring = prefs_dict["main_browser"]
         ipstring = prefs_dict["echo_monitor_url"]
         _launch_main_browser(progstring, ipstring)
@@ -2191,10 +2191,10 @@ def on_about(_):
         Connections exist for the following applications:\n        
                 AirTable
                 Asana
-                WebSiS
                 Callista
                 telnetUltra
                 UltraVNC
+                WebSiS
                 Wireless Workbench 6
                 WMI Ping
         """)

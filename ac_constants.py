@@ -6,24 +6,24 @@
 # Author:       Peter Todd
 #
 # Created:      1 January 2019
-# Version:      0.9
-# Date:         13 June 2019
+# Version:      1.0
+# Date:         13 October 2019
 # Licence:
 # Tags:
 #----------------------------------------------------------------------------
 """
-This module contains all the constants used by ArseCandi (aka iCandi).
+This module contains the constants used by iCandi.
 """
 from pathlib import Path
 
 __author__ = "Peter Todd <peter.todd@uwa.edu.au>"
-__date__ = "13 June 2019"
+__date__ = "13 October 2019"
 
 """
 App
 """
-APP_NAME = "iCandi - like a butchered phoenix"
-BUILD_VER = "0.9.9.19_9_09"
+APP_NAME = "iCandi - you'll never take me alive..."
+BUILD_VER = "1.0.0.19_10_13"
 
 """
 File and Folder
@@ -50,28 +50,6 @@ APP_FS = 9  # Default application font size
 
 """ 
 Colours 
-"""
-"""
-#ACE4FA bright blue
-#72BCD7 lightblue       #D86E27 Orange      # Orange Yellow
-#60A9C5 mid blue        #A59D88 Tan         #483E37 Brown
-#41718B darker blue     #80796A Dark Tan    #2D2724 Dark Brown
-#31566B Darkest Blue
-#CD6F4E red brown       #151514 Brown black 
-"""
-"""
-From SourceForge
-#FFFFFF White - background
-#F2F2F2 very light grey - stripping
-#E4E4E4 light grey - stripping
-#747474 light mid grey - stripping
-#5F5F5F mid grey - title bar
-#4B4B4B mid dark grey - background block
-#363636 dark grey - header background block
-#71C7FC light blue - text highlight
-#0BA1F8 mid-light blue - text on white
-#E17227 bright orange - navigation bar
-#FF3300 darker orange - button background with white text - inverts on rollover, white with blue text
 """
 COLOUR_PANEL_BG = "#616161"  # "#4B4B4B"  # "#ECECEC"  "#B0BEC5"   #607D8B #B0BEC5 #339194
 COLOUR_TABLE_BG = "#757575"
