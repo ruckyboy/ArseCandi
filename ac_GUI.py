@@ -779,7 +779,7 @@ class VenuesPanel(wx.Panel):
                 return
 
             progstring = prefs_dict["main_browser"]
-            websis_prefix_string = "http://sisfm-enquiry.fm.uwa.edu.au/sisfm-enquiry/mapEnquiry/default.aspx?loc_code="
+            websis_prefix_string = "http://sisfm-enquiry.fm.uwa.edu.au/mapEnquiry/default.aspx?loc_code="
             ipstring = f'{websis_prefix_string}{venue_record}'
             _launch_main_browser(progstring, ipstring, right_click)
 
@@ -1164,9 +1164,9 @@ class VenuesPanel(wx.Panel):
 
     def populate_imageview(self, websis_id):
         # default image, for when there is no building image in SIS....
-        default_image = 'http://sisfm-enquiry.fm.uwa.edu.au/SISfm-Enquiry/sisdata/photos/thumb/CR/900103_1.jpg'
+        default_image = 'http://sisfm-enquiry.fm.uwa.edu.au/sisdata/photos/thumb/CR/900103_1.jpg'
         websis_building_image = \
-            f"http://sisfm-enquiry.fm.uwa.edu.au/SISfm-Enquiry/sisdata/photos/thumb/CR/{websis_id[:6]}_1.jpg"
+            f"http://sisfm-enquiry.fm.uwa.edu.au/sisdata/photos/thumb/CR/{websis_id[:6]}_1.jpg"
         if websis_building_image:
             imageview_string = \
                 "<!doctype html><meta http-equiv='X-UA-Compatible' content='IE=edge' />" \
@@ -1761,7 +1761,7 @@ class WebCamFrame(wx.Frame):
         self.main_panel = wx.Panel(self, wx.ID_ANY, wx.DefaultPosition, size, wx.TAB_TRAVERSAL)
         panel_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        # default_image = 'http://sisfm-enquiry.fm.uwa.edu.au/SISfm-Enquiry/sisdata/photos/thumb/CR/900103_1.jpg'
+        # default_image = 'http://sisfm-enquiry.fm.uwa.edu.au/sisdata/photos/thumb/CR/900103_1.jpg'
 
         self.cam_viewer = wx.html2.WebView.New(self.main_panel, wx.ID_ANY, address, wx.DefaultPosition, size)
 
@@ -2260,6 +2260,7 @@ def bg_refresh_permitted(new_data=False):
 
 
 if __name__ == '__main__':
+
     if 'log' in sys.argv[1:]:
         error_file = open("errlog.txt", "a")
         original_stderr = sys.stderr
